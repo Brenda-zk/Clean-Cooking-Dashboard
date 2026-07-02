@@ -1,0 +1,1543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clean Cooking Schools — Monitoring, Carbon Tracking & Donor Reporting</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green:#1A9E73;--green-light:#e0f5ee;--green-dark:#0D5C42;
+  --amber:#C07B18;--amber-light:#faeeda;--red:#C93535;--red-light:#fcebeb;
+  --blue:#1B6FBF;--blue-light:#e0eefa;--purple:#5D4DB5;--purple-light:#eeecfc;
+  --teal:#17A89E;
+  --bg:#F5F7F4;--surface:#FFFFFF;--surface2:#F0F3F0;
+  --text:#1A2118;--text2:#4A5548;--text3:#8A9688;
+  --border:#DDE3DB;--border2:#C8D0C6;
+  --font:'Outfit',sans-serif;--mono:'DM Mono',monospace;--serif:'DM Serif Display',serif;
+  --radius:14px;--shadow:0 2px 12px rgba(26,33,24,.07);
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:13px;min-height:100vh}
+
+/* ── SHELL ── */
+.shell{display:flex;min-height:100vh}
+.sidebar{width:220px;background:var(--green-dark);color:#fff;display:flex;flex-direction:column;flex-shrink:0;position:fixed;top:0;left:0;height:100vh;z-index:100;overflow:hidden}
+.sidebar-logo{padding:22px 20px 16px;border-bottom:1px solid rgba(255,255,255,.1)}
+.sidebar-logo .mark{width:36px;height:36px;background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:10px}
+.sidebar-logo .mark svg{width:22px;height:22px}
+.sidebar-logo h1{font-family:var(--serif);font-size:15px;line-height:1.25;color:#fff;font-weight:400}
+.sidebar-logo p{font-size:10px;opacity:.55;margin-top:3px;letter-spacing:.03em}
+.sidebar-nav{flex:1;overflow-y:auto;padding:12px 10px}
+.nav-section{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.4);padding:14px 10px 6px}
+.nav-btn{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border:none;background:transparent;color:rgba(255,255,255,.75);cursor:pointer;border-radius:9px;text-align:left;font-family:var(--font);font-size:12px;transition:all .15s;margin-bottom:2px}
+.nav-btn:hover{background:rgba(255,255,255,.1);color:#fff}
+.nav-btn.on{background:rgba(255,255,255,.15);color:#fff;font-weight:500}
+.nav-btn .nb-icon{width:18px;height:18px;opacity:.7;flex-shrink:0}
+.nav-btn.on .nb-icon{opacity:1}
+.nav-badge{margin-left:auto;background:#C93535;color:#fff;border-radius:20px;font-size:9px;padding:1px 6px;font-weight:600}
+.sidebar-foot{padding:14px 16px;border-top:1px solid rgba(255,255,255,.1);font-size:10px;color:rgba(255,255,255,.5)}
+
+.main{margin-left:220px;flex:1;display:flex;flex-direction:column}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:50}
+.topbar-title{font-size:13px;font-weight:600;color:var(--text)}
+.topbar-sub{font-size:10px;color:var(--text3);margin-top:1px}
+.topbar-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.live-pill{display:flex;align-items:center;gap:5px;font-size:10px;padding:4px 11px;border-radius:20px;background:var(--green-light);color:var(--green-dark);font-weight:500}
+.dot-pulse{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 1.5s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.clock{font-family:var(--mono);font-size:11px;color:var(--text3);background:var(--surface2);padding:4px 10px;border-radius:7px;border:1px solid var(--border)}
+select{font-size:11px;padding:4px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--surface);color:var(--text);font-family:var(--font);cursor:pointer;height:28px}
+
+.content{padding:20px 24px 32px;flex:1}
+.page{display:none}.page.on{display:block}
+
+/* ── KPI STRIP ── */
+.kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.kpi.g::before{background:var(--green)}.kpi.b::before{background:var(--blue)}.kpi.a::before{background:var(--amber)}.kpi.r::before{background:var(--red)}.kpi.p::before{background:var(--purple)}
+.kpi-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:6px}
+.kpi-val{font-size:22px;font-weight:600;letter-spacing:-.5px;line-height:1}
+.kpi.g .kpi-val{color:var(--green-dark)}.kpi.b .kpi-val{color:var(--blue)}.kpi.a .kpi-val{color:var(--amber)}.kpi.r .kpi-val{color:var(--red)}.kpi.p .kpi-val{color:var(--purple)}
+.kpi-sub{font-size:9px;color:var(--text3);margin-top:4px}
+.kpi-badge{position:absolute;top:12px;right:12px;font-size:9px;padding:2px 7px;border-radius:10px;font-weight:500}
+.up{background:var(--green-light);color:var(--green-dark)}.dn{background:var(--red-light);color:var(--red)}.na{background:var(--surface2);color:var(--text3)}
+
+/* ── GRID ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px}
+.g31{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px}
+.g13{display:grid;grid-template-columns:1fr 2fr;gap:14px;margin-bottom:14px}
+.g211{display:grid;grid-template-columns:2fr 1fr 1fr;gap:14px;margin-bottom:14px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+.card-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}
+.card-h h3{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text2)}
+.card-h span{font-size:9px;color:var(--text3)}
+.card-h .badge{background:var(--green-light);color:var(--green-dark);padding:2px 8px;border-radius:10px;font-size:9px;font-weight:500}
+
+/* ── SECTION HEADING ── */
+.section-h{display:flex;align-items:baseline;gap:10px;margin-bottom:14px}
+.section-h h2{font-family:var(--serif);font-size:22px;font-weight:400;color:var(--text)}
+.section-h p{font-size:11px;color:var(--text3)}
+
+/* ── TABLES ── */
+.dtbl{width:100%;border-collapse:collapse;font-size:11px}
+.dtbl th{text-align:left;color:var(--text3);font-weight:500;padding:0 8px 8px;border-bottom:1px solid var(--border);font-size:9px;text-transform:uppercase;letter-spacing:.04em}
+.dtbl td{padding:7px 8px;border-bottom:1px solid var(--border);vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:0}
+.dtbl tr:last-child td{border-bottom:none}
+.dtbl tbody tr:hover td{background:var(--surface2)}
+.fw5{font-weight:500}
+.tag{display:inline-flex;align-items:center;gap:3px;font-size:9px;padding:2px 7px;border-radius:10px;font-weight:500}
+.tag.on{background:var(--green-light);color:var(--green-dark)}
+.tag.al{background:var(--amber-light);color:var(--amber)}
+.tag.of{background:var(--red-light);color:var(--red)}
+.tag.mt{background:var(--purple-light);color:var(--purple)}
+.tag.info{background:var(--blue-light);color:var(--blue)}
+
+/* ── PROGRESS ── */
+.prog{height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;margin-top:4px}
+.prog-f{height:100%;border-radius:3px;transition:width .8s ease}
+
+/* ── FEED ── */
+.feed-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);animation:fadeDown .3s ease}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.feed-row:last-child{border-bottom:none}
+.feed-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.feed-time{font-size:9px;font-family:var(--mono);color:var(--text3);width:52px;flex-shrink:0}
+.feed-sn{font-size:9px;font-family:var(--mono);color:var(--text3);width:74px;flex-shrink:0}
+.feed-sch{font-size:11px;font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.feed-kw{font-size:11px;font-weight:600;width:52px;text-align:right}
+.feed-v{font-size:10px;color:var(--text2);width:44px;text-align:right}
+
+/* ── ALERTS ── */
+.alert-item{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.alert-item:last-child{border-bottom:none}
+.alert-sev{width:24px;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;font-weight:600}
+.sev-crit{background:var(--red-light);color:var(--red)}
+.sev-warn{background:var(--amber-light);color:var(--amber)}
+.sev-info{background:var(--blue-light);color:var(--blue)}
+.a-title{font-size:11px;font-weight:500}
+.a-msg{font-size:10px;color:var(--text2);margin-top:2px;line-height:1.4}
+.a-time{font-size:9px;color:var(--text3);margin-top:3px}
+
+/* ── MAINTENANCE ── */
+.mrow{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}
+.mrow:last-child{border-bottom:none}
+.msch{font-size:11px;font-weight:500}
+.mtype{font-size:9px;color:var(--text3)}
+.mdate{font-size:10px;color:var(--text3);width:70px;text-align:right}
+.mpri{font-size:9px;padding:2px 7px;border-radius:10px;font-weight:500;flex-shrink:0}
+.mp-h{background:var(--red-light);color:var(--red)}
+.mp-m{background:var(--amber-light);color:var(--amber)}
+.mp-l{background:var(--green-light);color:var(--green-dark)}
+
+/* ── REGION CARDS ── */
+.rmap{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rcard{border:1px solid var(--border);border-radius:10px;padding:12px;cursor:pointer;transition:all .15s}
+.rcard:hover{border-color:var(--green);background:var(--green-light)}
+.rcard-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.rcard-name{font-size:12px;font-weight:600}
+.rcard-n{font-size:9px;color:var(--text3)}
+.rcard-val{font-size:20px;font-weight:600;letter-spacing:-.5px}
+.rcard-sub{font-size:9px;color:var(--text3);margin-top:2px}
+
+/* ── IMPACT BIG NUM ── */
+.impact-big{font-family:var(--serif);font-size:48px;color:var(--green);line-height:1;letter-spacing:-1px}
+.impact-rows{margin-top:14px;display:flex;flex-direction:column;gap:10px}
+.impact-lbl{display:flex;justify-content:space-between;font-size:10px;color:var(--text2);margin-bottom:3px}
+
+/* ── GEO / SCHOOL PROFILE ── */
+.map-placeholder{background:linear-gradient(135deg,#e0f5ee 0%,#d0eadf 100%);border-radius:10px;min-height:280px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--green-dark);font-size:12px;font-weight:500;border:1px solid var(--border)}
+.map-placeholder svg{width:40px;height:40px;opacity:.5}
+.map-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-height:340px;overflow-y:auto}
+.school-pin{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px;cursor:pointer;transition:all .15s;font-size:11px}
+.school-pin:hover{border-color:var(--green);box-shadow:0 0 0 2px var(--green-light)}
+.school-pin.selected{border-color:var(--green);background:var(--green-light)}
+.sp-name{font-weight:600;font-size:12px;margin-bottom:4px}
+.sp-row{display:flex;justify-content:space-between;color:var(--text3);font-size:9px;margin-top:2px}
+
+/* ── PROFILE PAGE ── */
+.prof-grid{display:grid;grid-template-columns:1fr 2fr;gap:14px;margin-bottom:14px}
+.info-rows .ir{display:flex;padding:7px 0;border-bottom:1px solid var(--border);font-size:11px}
+.info-rows .ir:last-child{border-bottom:none}
+.ir-lbl{color:var(--text3);width:140px;flex-shrink:0}
+.ir-val{font-weight:500;flex:1}
+
+/* ── BASELINE ── */
+.compare-split{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.before-card{background:linear-gradient(135deg,#fff5e0,#faeeda);border:1px solid #E8C880;border-radius:var(--radius);padding:16px}
+.after-card{background:linear-gradient(135deg,#e8f8f1,#d0f0e4);border:1px solid #7ECFAC;border-radius:var(--radius);padding:16px}
+.bc-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.bc-title.before{color:var(--amber)}.bc-title.after{color:var(--green-dark)}
+.bc-stat{margin-bottom:10px}
+.bc-val{font-size:20px;font-weight:600;letter-spacing:-.5px}
+.bc-lbl{font-size:9px;color:var(--text3)}
+
+/* ── DONOR PAGE ── */
+.donor-hero{background:linear-gradient(135deg,var(--green-dark) 0%,#0D7A55 100%);border-radius:16px;padding:28px;color:#fff;margin-bottom:20px;position:relative;overflow:hidden}
+.donor-hero::after{content:'';position:absolute;right:-40px;top:-40px;width:200px;height:200px;background:rgba(255,255,255,.05);border-radius:50%}
+.donor-hero h2{font-family:var(--serif);font-size:28px;font-weight:400;margin-bottom:6px}
+.donor-hero p{font-size:12px;opacity:.8;max-width:520px;line-height:1.6}
+.donor-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px}
+.dk{background:rgba(255,255,255,.12);border-radius:10px;padding:12px 14px;border:1px solid rgba(255,255,255,.15)}
+.dk-val{font-size:22px;font-weight:700;letter-spacing:-.5px}
+.dk-lbl{font-size:9px;opacity:.7;margin-top:3px}
+.story-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+.story-tag{display:inline-block;background:var(--green-light);color:var(--green-dark);font-size:9px;font-weight:600;padding:2px 8px;border-radius:10px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px}
+.story-title{font-family:var(--serif);font-size:18px;font-weight:400;margin-bottom:6px}
+.story-body{font-size:11px;color:var(--text2);line-height:1.65}
+.milestone-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.milestone-row:last-child{border-bottom:none}
+.ms-dot{width:10px;height:10px;border-radius:50%;background:var(--green);flex-shrink:0;margin-top:2px}
+.ms-date{font-size:10px;color:var(--text3);width:80px;flex-shrink:0}
+.ms-text{font-size:11px;color:var(--text)}
+
+/* ── FILTER BAR ── */
+.fbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px}
+.flbl{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em}
+.pills{display:flex;gap:4px}
+.pill{font-size:10px;padding:3px 11px;border-radius:20px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;font-family:var(--font);transition:all .12s}
+.pill:hover{background:var(--surface2)}
+.pill.on{background:var(--green);color:#fff;border-color:var(--green)}
+
+/* ── GAUGE ── */
+.gauge-wrap{display:flex;flex-direction:column;align-items:center;gap:4px}
+.gauge-val{font-size:22px;font-weight:600;color:var(--green-dark)}
+.gauge-lbl{font-size:9px;color:var(--text3)}
+
+/* ── PRINT / EXPORT STRIP ── */
+.export-bar{display:flex;align-items:center;gap:8px;justify-content:flex-end;margin-bottom:16px}
+.export-bar button{font-size:10px;padding:5px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;font-family:var(--font);display:flex;align-items:center;gap:5px;transition:all .12s}
+.export-bar button:hover{background:var(--green);color:#fff;border-color:var(--green)}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+@media print{
+  .sidebar,.topbar,.export-bar{display:none!important}
+  .main{margin-left:0}
+  .page{display:block!important}
+  #page-donor{display:block}
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+<!-- ── SIDEBAR ── -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="mark">
+      <svg viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="11" cy="11" r="8" stroke="#1A9E73" stroke-width="1.8"/>
+        <path d="M11 7v5l3 2" stroke="#1A9E73" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M5.5 18C3.7 16.5 2.5 14.4 2.5 12" stroke="#1A9E73" stroke-width="1.2" stroke-linecap="round" opacity=".5"/>
+      </svg>
+    </div>
+    <h1>Clean Cooking<br>Schools Dashboard</h1>
+    <p>Tanzania · EMS Platform</p>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-section">Monitoring</div>
+    <button class="nav-btn on" onclick="goto('overview',this)">
+      <svg class="nb-icon" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="6" height="6" rx="2" fill="currentColor"/><rect x="10" y="2" width="6" height="6" rx="2" fill="currentColor" opacity=".5"/><rect x="2" y="10" width="6" height="6" rx="2" fill="currentColor" opacity=".5"/><rect x="10" y="10" width="6" height="6" rx="2" fill="currentColor"/></svg>
+      Executive Overview
+    </button>
+    <button class="nav-btn" onclick="goto('geo',this)">
+      <svg class="nb-icon" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="8" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M9 12v4M6 16h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="9" cy="8" r="1.5" fill="currentColor"/></svg>
+      Map
+    </button>
+    <button class="nav-btn" onclick="goto('profile',this)">
+      <svg class="nb-icon" viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 7h8M5 10h5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      School Analytics
+    </button>
+    <div class="nav-section">Analytics</div>
+    <button class="nav-btn" onclick="goto('baseline',this)">
+      <svg class="nb-icon" viewBox="0 0 18 18" fill="none"><path d="M2 14 L6 9 L10 11 L14 5 L16 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 9 L6 7 L10 10 L14 4 L16 6" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".4"/></svg>
+      Baseline vs Current
+    </button>
+    <button class="nav-btn" onclick="goto('carbon',this)">
+      <svg class="nb-icon" viewBox="0 0 18 18" fill="none"><path d="M9 2C5.7 2 3 4.7 3 8c0 2.5 2 5 6 8 4-3 6-5.5 6-8 0-3.3-2.7-6-6-6z" stroke="currentColor" stroke-width="1.5"/><path d="M9 6v4l2 1.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      Carbon Monitoring
+    </button>
+    <div class="nav-section">Reporting <span style="font-size:8px;background:rgba(255,255,255,.15);border-radius:4px;padding:1px 5px;margin-left:4px">🔒 Role-gated</span></div>
+    <button class="nav-btn" onclick="goto('donor',this)">
+      <svg class="nb-icon" viewBox="0 0 18 18" fill="none"><path d="M3 14l4-5 3 2 3-4 3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="2" y="2" width="14" height="14" rx="3" stroke="currentColor" stroke-width="1.5"/></svg>
+      Donor Report
+    </button>
+    <button class="nav-btn" onclick="goto('stoves',this)">
+      <svg class="nb-icon" viewBox="0 0 18 18" fill="none"><rect x="2" y="5" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/><circle cx="6" cy="9.5" r="1.5" stroke="currentColor" stroke-width="1.2"/><circle cx="12" cy="9.5" r="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M5 5V3.5a1 1 0 011-1h6a1 1 0 011 1V5" stroke="currentColor" stroke-width="1.2"/></svg>
+      Stove Tracker
+    </button>
+    <button class="nav-btn" onclick="goto('datamodel',this)">
+      <svg class="nb-icon" viewBox="0 0 18 18" fill="none"><ellipse cx="9" cy="5" rx="6" ry="2.5" stroke="currentColor" stroke-width="1.4"/><path d="M3 5v4c0 1.4 2.7 2.5 6 2.5S15 10.4 15 9V5" stroke="currentColor" stroke-width="1.4"/><path d="M3 9v4c0 1.4 2.7 2.5 6 2.5S15 14.4 15 13V9" stroke="currentColor" stroke-width="1.4"/></svg>
+      Data Model
+    </button>
+    <button class="nav-btn" onclick="goto('alerts',this)">
+      <svg class="nb-icon" viewBox="0 0 18 18" fill="none"><path d="M9 2l1.5 5h5l-4 3 1.5 5L9 12l-4 3 1.5-5-4-3h5z" stroke="currentColor" stroke-width="1.4"/></svg>
+      Alerts
+      <span class="nav-badge" id="nav-alert-badge">7</span>
+    </button>
+  </div>
+  <div class="sidebar-foot">v2.0 · May 2026 · Halotel SIM</div>
+</nav>
+
+<!-- ── MAIN ── -->
+<div class="main">
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div>
+    <div class="topbar-title" id="page-title">Executive Overview</div>
+    <div class="topbar-sub">36 schools · Dar es Salaam · Dodoma · Tabora · Kigoma</div>
+  </div>
+  <div class="topbar-right">
+    <div class="live-pill"><div class="dot-pulse"></div>Live</div>
+    <div class="clock" id="clock">--:--:-- EAT</div>
+    <select id="sel-period" onchange="onPeriodChange()">
+      <option value="today">Today</option>
+      <option value="week">This Week</option>
+      <option value="month" selected>This Month</option>
+      <option value="year">This Year</option>
+      <option value="custom">📅 Pick Month…</option>
+    </select>
+    <span id="custom-month-display" style="display:none;font-size:11px;font-family:var(--mono);background:var(--green-light);color:var(--green-dark);padding:4px 10px;border-radius:8px;font-weight:600;cursor:pointer;align-items:center;gap:4px" onclick="if(event.target.id==='custom-month-display'||true){customMonth=null;this.style.display='none';document.getElementById('sel-period').value='month';render();}"></span>
+    <select id="sel-region" onchange="render()">
+      <option value="all">All Regions</option>
+      <option value="dar">Dar es Salaam</option>
+      <option value="dodoma">Dodoma</option>
+      <option value="tabora">Tabora</option>
+      <option value="kigoma">Kigoma</option>
+    </select>
+    <select id="sel-school" onchange="render()" style="max-width:140px">
+      <option value="all">All Schools</option>
+    </select>
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+<!-- Always-visible KPI strip -->
+<div class="kpi-strip">
+  <div class="kpi g">
+    <div class="kpi-lbl">Total Schools</div>
+    <div class="kpi-val" id="k-schools">36</div>
+    <div class="kpi-sub">4 regions covered</div>
+    <span class="kpi-badge up">+2 new</span>
+  </div>
+  <div class="kpi b">
+    <div class="kpi-lbl">Students Benefitted</div>
+    <div class="kpi-val" id="k-students">—</div>
+    <div class="kpi-sub">lunch beneficiaries</div>
+    <span class="kpi-badge up" id="k-students-b">+8%</span>
+  </div>
+  <div class="kpi g">
+    <div class="kpi-lbl">EPCs Installed</div>
+    <div class="kpi-val">169</div>
+    <div class="kpi-sub" id="k-active-sub">stoves deployed</div>
+    <span class="kpi-badge up" id="k-active-b">84% active</span>
+  </div>
+  <div class="kpi a">
+    <div class="kpi-lbl">CO₂ Reduced</div>
+    <div class="kpi-val" id="k-co2">—</div>
+    <div class="kpi-sub">kg vs charcoal</div>
+    <span class="kpi-badge up">+12%</span>
+  </div>
+  <div class="kpi p">
+    <div class="kpi-lbl">Cost Savings</div>
+    <div class="kpi-val" id="k-savings">—</div>
+    <div class="kpi-sub">TZS vs firewood</div>
+    <span class="kpi-badge up">+9%</span>
+  </div>
+</div>
+
+<!-- ═══ PAGE: OVERVIEW ═══ -->
+<div class="page on" id="page-overview">
+  <div class="section-h"><h2>Executive Overview</h2><p>Real-time monitoring across all regions</p></div>
+
+  <div class="g211">
+    <div class="card">
+      <div class="card-h"><h3>Live Data Feed — Stove Readings</h3><span id="feed-ts">Streaming</span></div>
+      <div id="live-feed" style="max-height:210px;overflow-y:auto"></div>
+    </div>
+    <div class="card" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
+      <div class="card-h" style="width:100%"><h3>Network Health</h3></div>
+      <canvas id="gauge-canvas" width="140" height="90" role="img" aria-label="Network health gauge"></canvas>
+      <div class="gauge-val" id="gauge-val">84%</div>
+      <div class="gauge-lbl">stoves transmitting</div>
+      <div style="margin-top:10px;display:flex;gap:10px;font-size:9px;color:var(--text3)">
+        <span>🟢 <span id="leg-on">—</span></span>
+        <span>🟡 <span id="leg-al">—</span></span>
+        <span>🔴 <span id="leg-of">—</span></span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>Stove Status</h3><span id="status-total">—</span></div>
+      <div style="position:relative;height:120px"><canvas id="chartDonut"></canvas></div>
+      <div style="display:flex;gap:10px;justify-content:center;margin-top:8px;font-size:9px;flex-wrap:wrap">
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:#1A9E73;display:inline-block"></span><strong id="leg-on2">—</strong> Online</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:#C07B18;display:inline-block"></span><strong id="leg-al2">—</strong> Alert</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:#C93535;display:inline-block"></span><strong id="leg-of2">—</strong> Offline</span>
+      </div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:9px;color:var(--text3);line-height:1.5">
+        <em>Status = individual stove on/off/fault. Network Health (left) = % of all stoves actively transmitting telemetry data right now.</em>
+      </div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="card-h"><h3>Energy Consumption Trend</h3><span>kWh / period</span></div>
+      <div style="position:relative;height:190px"><canvas id="chartTrend"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>Regional Summary</h3></div>
+      <div class="rmap" id="region-map"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><h3>Schools — Regional Overview</h3><span>ranked by energy consumption</span></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center">
+      <span style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Sort by:</span>
+      <div class="pills" id="sort-pills">
+        <button class="pill on" onclick="setSort('kwh',this)">kWh</button>
+        <button class="pill" onclick="setSort('students',this)">Students</button>
+        <button class="pill" onclick="setSort('co2',this)">CO₂ Saved</button>
+        <button class="pill" onclick="setSort('savings',this)">Cost Savings</button>
+        <button class="pill" onclick="setSort('name',this)">School Name</button>
+      </div>
+      <span style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-left:8px">Status:</span>
+      <div class="pills" id="status-pills">
+        <button class="pill on" onclick="setStatusFilter('all',this)">All</button>
+        <button class="pill" onclick="setStatusFilter('online',this)">Online</button>
+        <button class="pill" onclick="setStatusFilter('alert',this)">Alert</button>
+        <button class="pill" onclick="setStatusFilter('offline',this)">Offline</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="dtbl" style="table-layout:fixed">
+        <thead><tr>
+          <th style="width:16%">School</th>
+          <th style="width:12%">Region</th>
+          <th style="width:8%">District</th>
+          <th style="width:7%">Students</th>
+          <th style="width:6%">Stoves</th>
+          <th style="width:10%">kWh (period)</th>
+          <th style="width:10%">CO₂ saved</th>
+          <th style="width:10%">Cost savings</th>
+          <th style="width:7%">Status</th>
+          <th style="width:14%">Note</th>
+        </tr></thead>
+        <tbody id="overview-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE: GEOSPATIAL ═══ -->
+<div class="page" id="page-geo">
+  <div class="section-h"><h2>Map</h2><p>School locations across 4 regions of Tanzania</p></div>
+
+  <div class="g31">
+    <div class="card">
+      <div class="card-h"><h3>School Locations</h3><span>Click a school for details</span></div>
+      <div class="map-placeholder">
+        <svg viewBox="0 0 40 40" fill="none"><circle cx="20" cy="18" r="10" stroke="#1A9E73" stroke-width="2"/><path d="M20 28v8" stroke="#1A9E73" stroke-width="2" stroke-linecap="round"/><circle cx="20" cy="18" r="3" fill="#1A9E73"/><circle cx="12" cy="15" r="1.5" fill="#C07B18"/><circle cx="28" cy="20" r="1.5" fill="#1A9E73"/><circle cx="16" cy="22" r="1.5" fill="#C93535"/></svg>
+        <div style="text-align:center">
+          <div style="font-size:13px;font-weight:600;color:var(--green-dark)">Interactive Map</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:4px">Connect Azure Maps or ArcGIS for live GIS rendering</div>
+          <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:10px;width:240px">
+            <div style="background:var(--green-light);border-radius:6px;padding:6px;color:var(--green-dark)">🟢 Online: <strong id="geo-online">—</strong></div>
+            <div style="background:var(--amber-light);border-radius:6px;padding:6px;color:var(--amber)">🟡 Alert: <strong id="geo-alert">—</strong></div>
+            <div style="background:var(--red-light);border-radius:6px;padding:6px;color:var(--red)">🔴 Offline: <strong id="geo-offline">—</strong></div>
+            <div style="background:var(--blue-light);border-radius:6px;padding:6px;color:var(--blue)">📍 Total: <strong>36</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>Region Filter</h3><span>Select to highlight</span></div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+        <div class="rcard" onclick="filterGeo('dar')" style="border-left:3px solid #1A9E73">
+          <div class="rcard-top"><span class="rcard-name">Dar es Salaam</span><span class="rcard-n" id="g-dar-n">13 schools</span></div>
+          <div class="rcard-val" id="g-dar-v" style="color:#1A9E73">—</div>
+          <div class="rcard-sub">kWh this month</div>
+        </div>
+        <div class="rcard" onclick="filterGeo('dodoma')" style="border-left:3px solid #1B6FBF">
+          <div class="rcard-top"><span class="rcard-name">Dodoma</span><span class="rcard-n">11 schools</span></div>
+          <div class="rcard-val" id="g-dodoma-v" style="color:#1B6FBF">—</div>
+          <div class="rcard-sub">kWh this month</div>
+        </div>
+        <div class="rcard" onclick="filterGeo('tabora')" style="border-left:3px solid #C07B18">
+          <div class="rcard-top"><span class="rcard-name">Tabora</span><span class="rcard-n">6 schools</span></div>
+          <div class="rcard-val" id="g-tabora-v" style="color:#C07B18">—</div>
+          <div class="rcard-sub">kWh this month</div>
+        </div>
+        <div class="rcard" onclick="filterGeo('kigoma')" style="border-left:3px solid #5D4DB5">
+          <div class="rcard-top"><span class="rcard-name">Kigoma</span><span class="rcard-n">6 schools</span></div>
+          <div class="rcard-val" id="g-kigoma-v" style="color:#5D4DB5">—</div>
+          <div class="rcard-sub">kWh this month</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><h3>All Schools — Location & Status</h3><span>Click row to view profile</span></div>
+    <div class="map-grid" id="school-pins"></div>
+  </div>
+</div>
+
+<!-- ═══ PAGE: SCHOOL PROFILE ═══ -->
+<div class="page" id="page-profile">
+  <div class="section-h">
+    <h2>School Analytics</h2>
+    <select id="profile-school-sel" onchange="renderProfile()" style="font-size:13px;padding:4px 12px;border-radius:8px;border:1px solid var(--border2);background:var(--surface);font-family:var(--font);font-weight:500;color:var(--text)"></select>
+  </div>
+  <div class="prof-grid">
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-h"><h3>School Information</h3></div>
+        <div class="info-rows" id="prof-info"></div>
+      </div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-h"><h3>Administration</h3></div>
+        <div class="info-rows" id="prof-admin"></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>Installation Details</h3></div>
+        <div class="info-rows" id="prof-install"></div>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-h"><h3>Energy Consumption Trend</h3><span>last 12 months</span></div>
+        <div style="position:relative;height:180px"><canvas id="chartProfEnergy"></canvas></div>
+      </div>
+      <div class="g2">
+        <div class="card">
+          <div class="card-h"><h3>Device Usage Heatmap</h3><span>24h</span></div>
+          <div id="prof-heatmap"></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><h3>Operational KPIs</h3></div>
+          <div id="prof-kpis" style="display:flex;flex-direction:column;gap:10px"></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <div class="card-h"><h3>Maintenance History</h3></div>
+        <div id="prof-maint"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE: BASELINE vs CURRENT ═══ -->
+<div class="page" id="page-baseline">
+  <div class="section-h"><h2>Baseline vs Current Comparison</h2><p>Impact analysis before and after clean cooking implementation</p></div>
+
+  <div class="compare-split">
+    <div class="before-card">
+      <div class="bc-title before">⚠ Before — Biomass Baseline</div>
+      <div class="bc-stat"><div class="bc-val" id="bl-fuel-type">Firewood + Charcoal</div><div class="bc-lbl">Primary fuel type</div></div>
+      <div class="bc-stat"><div class="bc-val" id="bl-cost" style="color:var(--amber)">—</div><div class="bc-lbl">Monthly fuel cost (avg per school)</div></div>
+      <div class="bc-stat"><div class="bc-val" id="bl-fw">—</div><div class="bc-lbl">Firewood consumed (kg/month)</div></div>
+      <div class="bc-stat"><div class="bc-val" id="bl-time">4.5 hrs</div><div class="bc-lbl">Daily cooking time</div></div>
+      <div class="bc-stat"><div class="bc-val" id="bl-co2" style="color:var(--red)">—</div><div class="bc-lbl">Estimated CO₂ emitted (kg/month)</div></div>
+    </div>
+    <div class="after-card">
+      <div class="bc-title after">✓ After — Electric Clean Cooking</div>
+      <div class="bc-stat"><div class="bc-val">Electric Pressure Cooker (EPC)</div><div class="bc-lbl">Current energy source</div></div>
+      <div class="bc-stat"><div class="bc-val" id="cur-cost" style="color:var(--green-dark)">—</div><div class="bc-lbl">Monthly electricity cost (avg per school)</div></div>
+      <div class="bc-stat"><div class="bc-val" id="cur-kwh">—</div><div class="bc-lbl">kWh consumed (month)</div></div>
+      <div class="bc-stat"><div class="bc-val" id="cur-time">1.5 hrs</div><div class="bc-lbl">Daily cooking time (reduced)</div></div>
+      <div class="bc-stat"><div class="bc-val" id="cur-co2" style="color:var(--green-dark)">—</div><div class="bc-lbl">CO₂ saved vs baseline (kg/month)</div></div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="card-h"><h3>Before vs After — Cost Comparison</h3></div>
+      <div style="position:relative;height:200px"><canvas id="chartBLCost"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>CO₂ Emissions Reduction</h3></div>
+      <div style="position:relative;height:200px"><canvas id="chartBLCO2"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-h"><h3>Cost Savings Waterfall — Where Does the Money Go?</h3><span>per school per month (avg)</span></div>
+    <div style="position:relative;height:200px"><canvas id="chartWaterfall"></canvas></div>
+  </div>
+
+  <!-- Kibasila Case Study -->
+  <div class="card" style="border-left:4px solid var(--green)">
+    <div class="card-h"><h3>🏫 Case Study: Kibasila Primary School</h3><span class="badge">Benchmark Transformation</span></div>
+    <div class="g3" style="margin-bottom:0">
+      <div>
+        <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Before</div>
+        <div style="font-size:16px;font-weight:600;color:var(--amber)">TZS 420,000/mo</div>
+        <div style="font-size:10px;color:var(--text3)">Firewood cost · 400 students</div>
+        <div style="margin-top:8px;font-size:16px;font-weight:600;color:var(--red)">186 kg CO₂</div>
+        <div style="font-size:10px;color:var(--text3)">Monthly emissions</div>
+      </div>
+      <div>
+        <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">After</div>
+        <div style="font-size:16px;font-weight:600;color:var(--green-dark)">TZS 95,000/mo</div>
+        <div style="font-size:10px;color:var(--text3)">Electricity cost · 5 EPCs</div>
+        <div style="margin-top:8px;font-size:16px;font-weight:600;color:var(--green)">28 kg CO₂</div>
+        <div style="font-size:10px;color:var(--text3)">Monthly emissions (–85%)</div>
+      </div>
+      <div>
+        <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Impact</div>
+        <div style="font-size:16px;font-weight:600;color:var(--green-dark)">TZS 325,000</div>
+        <div style="font-size:10px;color:var(--text3)">Monthly savings (77% reduction)</div>
+        <div style="margin-top:8px;font-size:16px;font-weight:600;color:var(--green)">8.5 trees/mo</div>
+        <div style="font-size:10px;color:var(--text3)">Equivalent trees saved</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE: CARBON ═══ -->
+<div class="page" id="page-carbon">
+  <div class="section-h"><h2>Carbon Monitoring</h2><p>Environmental impact tracking and sustainability metrics</p></div>
+
+  <div class="g3">
+    <div class="card" style="display:flex;flex-direction:column;justify-content:center">
+      <div class="kpi-lbl">Total CO₂ Reduced</div>
+      <div class="impact-big" id="carbon-big">—</div>
+      <div style="font-size:11px;color:var(--text2);margin-top:5px">kg CO₂ vs charcoal baseline</div>
+      <div class="impact-rows">
+        <div>
+          <div class="impact-lbl"><span>Monthly target 5,000 kg</span><span id="c-pct">—</span></div>
+          <div class="prog"><div class="prog-f" id="c-prog" style="background:var(--green)"></div></div>
+        </div>
+        <div>
+          <div class="impact-lbl"><span>Firewood displaced</span><span id="c-fw">—</span></div>
+          <div class="prog"><div class="prog-f" id="c-fw-p" style="background:#5DCAA5"></div></div>
+        </div>
+        <div>
+          <div class="impact-lbl"><span>Charcoal displaced</span><span id="c-ch">—</span></div>
+          <div class="prog"><div class="prog-f" id="c-ch-p" style="background:#97C459"></div></div>
+        </div>
+        <div>
+          <div class="impact-lbl"><span>Trees saved (est.)</span><span id="c-tr">—</span></div>
+          <div class="prog"><div class="prog-f" id="c-tr-p" style="background:#639922"></div></div>
+        </div>
+        <div>
+          <div class="impact-lbl"><span>Indoor air improvement</span><span>↓72% particulates</span></div>
+          <div class="prog"><div class="prog-f" style="background:#17A89E;width:72%"></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>CO₂ Savings by Region</h3></div>
+      <div style="position:relative;height:230px"><canvas id="chartCO2Region"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>Monthly CO₂ Trend</h3></div>
+      <div style="position:relative;height:230px"><canvas id="chartCO2Trend"></canvas></div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="card-h"><h3>School-Level CO₂ Contribution</h3><span>kg saved this period</span></div>
+      <div style="position:relative;height:240px"><canvas id="chartCO2Schools"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>Sustainability Scorecard</h3></div>
+      <div style="display:flex;flex-direction:column;gap:10px" id="carbon-scorecard"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE: DONOR ═══ -->
+<div class="page" id="page-donor">
+  <div class="export-bar">
+    <button onclick="window.print()">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="1" y="4" width="10" height="7" rx="1" stroke="currentColor" stroke-width="1.2"/><path d="M3 4V2h6v2" stroke="currentColor" stroke-width="1.2"/><rect x="3" y="7" width="6" height="3" stroke="currentColor" stroke-width="1.2"/></svg>
+      Print Report
+    </button>
+    <button>
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v7M3 5l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M1 9v1a1 1 0 001 1h8a1 1 0 001-1V9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      Export PDF
+    </button>
+  </div>
+
+  <div class="donor-hero">
+    <h2>Clean Cooking in Tanzania Schools</h2>
+    <p>Transforming school kitchens across 4 regions — reducing carbon emissions, cutting costs, and improving health outcomes for over 13,500 students every day.</p>
+    <div class="donor-kpis">
+      <div class="dk"><div class="dk-val">36</div><div class="dk-lbl">Schools Reached</div></div>
+      <div class="dk"><div class="dk-val" id="donor-students">13,500+</div><div class="dk-lbl">Students Benefiting Daily</div></div>
+      <div class="dk"><div class="dk-val" id="donor-co2">—</div><div class="dk-lbl">kg CO₂ Reduced This Month</div></div>
+      <div class="dk"><div class="dk-val">4</div><div class="dk-lbl">Regions Covered</div></div>
+      <div class="dk"><div class="dk-val">169</div><div class="dk-lbl">EPCs Installed</div></div>
+      <div class="dk"><div class="dk-val" id="donor-savings">—</div><div class="dk-lbl">TZS Saved (Monthly)</div></div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div>
+      <div class="story-card" style="margin-bottom:14px">
+        <div class="story-tag">School Spotlight</div>
+        <div class="story-title">Kibasila Primary — A Benchmark Transformation</div>
+        <div class="story-body">Kibasila Primary School in Dar es Salaam became one of the first schools in Tanzania to fully transition from firewood to electric pressure cooking. With 5 EPCs installed, the school now prepares meals for 400 students in under 90 minutes — down from 4+ hours over open fires. Monthly fuel costs dropped from TZS 420,000 to under TZS 95,000, an 77% reduction. CO₂ emissions fell by 85%. Teachers report improved kitchen air quality and less time spent on firewood procurement, freeing staff for educational activities.</div>
+      </div>
+      <div class="story-card">
+        <div class="story-tag">Impact Story</div>
+        <div class="story-title">Nkuhungu School, Dodoma — Scale at Speed</div>
+        <div class="story-body">Nkuhungu School deployed the largest fleet of any single school — 12 EPCs serving 1,100 students. Using a mix of 55L and 75L units, the school achieves maximum kitchen throughput. Real-time smart meters allow the school administration to track daily usage and report instantly to the district education office. This model is now being replicated across Dodoma region.</div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-h"><h3>Implementation Milestones</h3></div>
+        <div id="milestones"></div>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <div class="card-h"><h3>Impact by Region</h3></div>
+        <div style="position:relative;height:180px"><canvas id="chartDonorImpact"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="g3" style="margin-top:14px">
+    <div class="card" style="background:var(--green-light);border-color:#7ECFAC">
+      <div style="font-size:30px;margin-bottom:4px">🌳</div>
+      <div style="font-size:24px;font-weight:700;color:var(--green-dark)" id="donor-trees">—</div>
+      <div style="font-size:11px;color:var(--green-dark);margin-top:3px">Trees saved this month (est.)</div>
+    </div>
+    <div class="card" style="background:var(--blue-light);border-color:#7EAEE8">
+      <div style="font-size:30px;margin-bottom:4px">⚡</div>
+      <div style="font-size:24px;font-weight:700;color:var(--blue)" id="donor-kwh">—</div>
+      <div style="font-size:11px;color:var(--blue);margin-top:3px">kWh consumed this month</div>
+    </div>
+    <div class="card" style="background:#fff9ec;border-color:#E8C880">
+      <div style="font-size:30px;margin-bottom:4px">🏫</div>
+      <div style="font-size:24px;font-weight:700;color:var(--amber)">77%</div>
+      <div style="font-size:11px;color:var(--amber);margin-top:3px">Average cost reduction per school</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE: ALERTS ═══ -->
+<div class="page" id="page-alerts">
+  <div class="section-h"><h2>Alerts & Notifications</h2><p id="alert-count-lbl">Loading...</p></div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-h"><h3>Active Alerts</h3><span id="alert-c-lbl">—</span></div>
+      <div id="alert-list"></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>Alert History — Last 30 Days</h3></div>
+      <div style="position:relative;height:240px"><canvas id="chartAlertHist"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE: STOVE TRACKER ═══ -->
+<div class="page" id="page-stoves">
+  <div class="section-h"><h2>Stove Tracker</h2><p>Device-level monitoring — serial numbers, voltage, uptime, SIM status</p></div>
+  <div class="kpi-strip" style="grid-template-columns:repeat(4,1fr)">
+    <div class="kpi g"><div class="kpi-lbl">Total EPCs</div><div class="kpi-val">169</div><div class="kpi-sub">deployed across 36 schools</div></div>
+    <div class="kpi g"><div class="kpi-lbl">Transmitting Now</div><div class="kpi-val" id="st-tx">—</div><div class="kpi-sub">SIM active + sending data</div></div>
+    <div class="kpi a"><div class="kpi-lbl">Alert / Low Voltage</div><div class="kpi-val" id="st-al">—</div><div class="kpi-sub">voltage &lt; 210V</div></div>
+    <div class="kpi r"><div class="kpi-lbl">Offline / No Signal</div><div class="kpi-val" id="st-of">—</div><div class="kpi-sub">no data for 24h+</div></div>
+  </div>
+  <div class="g2" style="margin-bottom:14px">
+    <div class="card">
+      <div class="card-h"><h3>Voltage Distribution</h3><span>across all transmitting stoves</span></div>
+      <div style="position:relative;height:180px"><canvas id="chartVoltDist"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>Uptime by Region</h3><span>% avg uptime this period</span></div>
+      <div style="position:relative;height:180px"><canvas id="chartUptime"></canvas></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-h"><h3>Device Registry — All Stoves</h3><span id="stove-tbl-count">—</span></div>
+    <div style="overflow-x:auto;max-height:420px">
+      <table class="dtbl" style="table-layout:fixed">
+        <thead><tr>
+          <th style="width:14%">Serial</th>
+          <th style="width:14%">School</th>
+          <th style="width:8%">Region</th>
+          <th style="width:6%">Size</th>
+          <th style="width:8%">Voltage</th>
+          <th style="width:8%">kW Now</th>
+          <th style="width:8%">Uptime</th>
+          <th style="width:10%">SIM</th>
+          <th style="width:10%">Last Seen</th>
+          <th style="width:14%">Status</th>
+        </tr></thead>
+        <tbody id="stove-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE: DATA MODEL ═══ -->
+<div class="page" id="page-datamodel">
+  <div class="section-h"><h2>Data Model & DAX Reference</h2><p>Power BI schema, relationships, DAX measures, and Power Query guide</p></div>
+  <div class="g2" style="margin-bottom:14px">
+    <div class="card">
+      <div class="card-h"><h3>Data Tables</h3><span>8 tables · star schema</span></div>
+      <div id="dm-tables" style="display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>Table Relationships</h3></div>
+      <div id="dm-rels" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+  </div>
+  <div class="g2" style="margin-bottom:14px">
+    <div class="card">
+      <div class="card-h"><h3>DAX Measures</h3><span>core + advanced</span></div>
+      <div id="dm-dax" style="display:flex;flex-direction:column;gap:8px;max-height:360px;overflow-y:auto"></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>Power Query Steps</h3></div>
+      <div id="dm-pq" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-h"><h3>Theme & UX Guide</h3></div>
+    <div id="dm-theme" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px"></div>
+  </div>
+</div>
+
+</div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /shell -->
+
+<script>
+// ── DATA ──
+const RC={dar:'#1A9E73',dodoma:'#1B6FBF',tabora:'#C07B18',kigoma:'#5D4DB5'};
+const RN={dar:'Dar es Salaam',dodoma:'Dodoma',tabora:'Tabora',kigoma:'Kigoma'};
+
+const SCHOOLS=[
+  {id:1,n:'Kibasila',r:'dar',d:'Kinondoni',lat:-6.79,lng:39.22,s55:1,s75:4,fed:400,st:'alert',note:'Need 4 new industrial sockets',hm:'Mrs. Fatuma Salim',phone:'+255 712 345 001',install:'2024-03-12'},
+  {id:2,n:'Alhassan Mwinyi',r:'dar',d:'Ilala',lat:-6.82,lng:39.27,s55:3,s75:7,fed:960,st:'online',note:'Extension cables needed',hm:'Mr. Hassan Juma',phone:'+255 712 345 002',install:'2024-02-20'},
+  {id:3,n:'Lioness Miburani',r:'dar',d:'Temeke',lat:-6.87,lng:39.29,s55:1,s75:3,fed:380,st:'online',note:'',hm:'Mrs. Amina Otieno',phone:'+255 712 345 003',install:'2024-04-05'},
+  {id:4,n:'Umoja',r:'dar',d:'Kinondoni',lat:-6.80,lng:39.24,s55:1,s75:2,fed:200,st:'online',note:'',hm:'Mr. Said Mwamba',phone:'+255 712 345 004',install:'2024-03-28'},
+  {id:5,n:'Unubini',r:'dar',d:'Ilala',lat:-6.83,lng:39.25,s55:1,s75:3,fed:330,st:'alert',note:'Crack in wall needs fixing',hm:'Mrs. Grace Nkosi',phone:'+255 712 345 005',install:'2024-04-15'},
+  {id:6,n:'Charambe',r:'dar',d:'Temeke',lat:-6.88,lng:39.30,s55:3,s75:7,fed:800,st:'online',note:'',hm:'Mr. Peter Lwanga',phone:'+255 712 345 006',install:'2024-01-18'},
+  {id:7,n:'Nzasa',r:'dar',d:'Temeke',lat:-6.90,lng:39.28,s55:1,s75:2,fed:240,st:'offline',note:'Electricity not yet connected',hm:'Mrs. Zakia Hamid',phone:'+255 712 345 007',install:'2024-05-01'},
+  {id:8,n:'Chemchem',r:'dar',d:'Kinondoni',lat:-6.78,lng:39.22,s55:3,s75:7,fed:909,st:'alert',note:'Sink tap not working',hm:'Mr. Juma Bakari',phone:'+255 712 345 008',install:'2024-02-14'},
+  {id:9,n:'Taifa (KIAB)',r:'dar',d:'Ilala',lat:-6.84,lng:39.26,s55:1,s75:4,fed:400,st:'online',note:'',hm:'Mrs. Rehema Abdalla',phone:'+255 712 345 009',install:'2024-03-22'},
+  {id:10,n:'Ponde (KIAB)',r:'dar',d:'Ilala',lat:-6.85,lng:39.26,s55:1,s75:1,fed:80,st:'alert',note:'No circuit breaker, exposed wiring',hm:'Mr. Ali Hassan',phone:'+255 712 345 010',install:'2024-05-10'},
+  {id:11,n:'Madenge',r:'dar',d:'Temeke',lat:-6.89,lng:39.31,s55:1,s75:2,fed:205,st:'online',note:'',hm:'Mrs. Neema Charo',phone:'+255 712 345 011',install:'2024-04-02'},
+  {id:12,n:'Likwati',r:'dar',d:'Kinondoni',lat:-6.77,lng:39.21,s55:1,s75:1,fed:105,st:'online',note:'',hm:'Mr. Daudi Msemo',phone:'+255 712 345 012',install:'2024-03-10'},
+  {id:13,n:'Wailes',r:'dar',d:'Temeke',lat:-6.91,lng:39.32,s55:1,s75:3,fed:300,st:'online',note:'',hm:'Mrs. Halima Suleiman',phone:'+255 712 345 013',install:'2024-04-20'},
+  {id:14,n:'Amani',r:'dodoma',d:'Dodoma Urban',lat:-6.18,lng:35.74,s55:2,s75:7,fed:800,st:'online',note:'',hm:'Mr. Frank Mwita',phone:'+255 712 345 014',install:'2024-02-08'},
+  {id:15,n:"Chang'ombe",r:'dodoma',d:'Dodoma Urban',lat:-6.19,lng:35.76,s55:2,s75:6,fed:675,st:'online',note:'',hm:'Mrs. Lucy Makori',phone:'+255 712 345 015',install:'2024-03-05'},
+  {id:16,n:'Kaloleni',r:'dodoma',d:'Bahi',lat:-6.20,lng:35.72,s55:2,s75:5,fed:620,st:'online',note:'',hm:'Mr. Simon Ngowi',phone:'+255 712 345 016',install:'2024-02-25'},
+  {id:17,n:'Mlimwa',r:'dodoma',d:'Dodoma Rural',lat:-6.22,lng:35.70,s55:1,s75:1,fed:100,st:'online',note:'',hm:'Mrs. Joyce Lyimo',phone:'+255 712 345 017',install:'2024-04-10'},
+  {id:18,n:'Jitegemee',r:'dodoma',d:'Dodoma Urban',lat:-6.21,lng:35.75,s55:2,s75:5,fed:600,st:'online',note:'',hm:'Mr. Moses Kashemwa',phone:'+255 712 345 018',install:'2024-03-18'},
+  {id:19,n:'Dodoma Makulu',r:'dodoma',d:'Dodoma Urban',lat:-6.17,lng:35.73,s55:1,s75:3,fed:340,st:'online',note:'',hm:'Mrs. Agnes Minja',phone:'+255 712 345 019',install:'2024-04-28'},
+  {id:20,n:'Msangalalee',r:'dodoma',d:'Bahi',lat:-6.23,lng:35.71,s55:1,s75:3,fed:360,st:'online',note:'',hm:'Mr. Emmanuel Rupia',phone:'+255 712 345 020',install:'2024-05-05'},
+  {id:21,n:'Makole',r:'dodoma',d:'Dodoma Rural',lat:-6.24,lng:35.69,s55:1,s75:2,fed:200,st:'online',note:'',hm:'Mrs. Beatrice Mwanga',phone:'+255 712 345 021',install:'2024-03-30'},
+  {id:22,n:'Mbwanga',r:'dodoma',d:'Dodoma Urban',lat:-6.16,lng:35.77,s55:2,s75:5,fed:600,st:'online',note:'',hm:'Mr. Charles Sanga',phone:'+255 712 345 022',install:'2024-02-15'},
+  {id:23,n:'Mtube',r:'dodoma',d:'Bahi',lat:-6.25,lng:35.68,s55:1,s75:3,fed:300,st:'online',note:'',hm:'Mrs. Dina Mbowe',phone:'+255 712 345 023',install:'2024-04-08'},
+  {id:24,n:'Nkuhungu',r:'dodoma',d:'Dodoma Urban',lat:-6.15,lng:35.78,s55:3,s75:9,fed:1100,st:'online',note:'',hm:'Mr. Edward Kileo',phone:'+255 712 345 024',install:'2024-01-25'},
+  {id:25,n:'Bombamzinga',r:'tabora',d:'Tabora Urban',lat:-5.02,lng:32.80,s55:1,s75:2,fed:250,st:'online',note:'',hm:'Mrs. Fatuma Nkinga',phone:'+255 712 345 025',install:'2024-03-14'},
+  {id:26,n:'Uhuru',r:'tabora',d:'Tabora Urban',lat:-5.03,lng:32.81,s55:1,s75:3,fed:350,st:'online',note:'',hm:'Mr. George Mfaume',phone:'+255 712 345 026',install:'2024-02-28'},
+  {id:27,n:'Viziwi',r:'tabora',d:'Sikonge',lat:-5.05,lng:32.78,s55:1,s75:1,fed:150,st:'online',note:'',hm:'Mrs. Helen Kavishe',phone:'+255 712 345 027',install:'2024-04-18'},
+  {id:28,n:'Furaha',r:'tabora',d:'Igunga',lat:-5.07,lng:32.76,s55:1,s75:1,fed:91,st:'online',note:'',hm:'Mr. Ibrahim Said',phone:'+255 712 345 028',install:'2024-04-22'},
+  {id:29,n:'Kizigo',r:'tabora',d:'Tabora Rural',lat:-5.04,lng:32.82,s55:1,s75:2,fed:228,st:'online',note:'',hm:'Mrs. Jane Selemani',phone:'+255 712 345 029',install:'2024-03-08'},
+  {id:30,n:'Magereza',r:'tabora',d:'Tabora Urban',lat:-5.01,lng:32.79,s55:1,s75:2,fed:130,st:'online',note:'',hm:'Mr. Kenneth Minja',phone:'+255 712 345 030',install:'2024-05-14'},
+  {id:31,n:'Murabona',r:'kigoma',d:'Kigoma Urban',lat:-4.88,lng:29.62,s55:1,s75:1,fed:98,st:'online',note:'',hm:'Mrs. Lilian Kasule',phone:'+255 712 345 031',install:'2024-04-12'},
+  {id:32,n:'Mwibuye',r:'kigoma',d:'Kigoma Rural',lat:-4.90,lng:29.60,s55:1,s75:2,fed:218,st:'online',note:'',hm:'Mr. Martin Ndunguru',phone:'+255 712 345 032',install:'2024-03-25'},
+  {id:33,n:'Kanyamahela',r:'kigoma',d:'Kasulu',lat:-4.92,lng:29.58,s55:1,s75:3,fed:300,st:'online',note:'',hm:'Mrs. Nancy Tembo',phone:'+255 712 345 033',install:'2024-02-18'},
+  {id:34,n:'Nengo',r:'kigoma',d:'Kigoma Urban',lat:-4.89,lng:29.63,s55:1,s75:3,fed:260,st:'online',note:'',hm:'Mr. Oliver Kamwela',phone:'+255 712 345 034',install:'2024-03-20'},
+  {id:35,n:'Kumkambati',r:'kigoma',d:'Kasulu',lat:-4.94,lng:29.56,s55:1,s75:3,fed:246,st:'online',note:'',hm:'Mrs. Patricia Moshi',phone:'+255 712 345 035',install:'2024-04-30'},
+  {id:36,n:'Kabanga',r:'kigoma',d:'Kibondo',lat:-4.96,lng:29.54,s55:1,s75:2,fed:150,st:'online',note:'',hm:'Mr. Robert Lugendo',phone:'+255 712 345 036',install:'2024-05-08'},
+];
+
+function rnd(s,a,b){let x=Math.sin(s*9301+a*49297+b*233720)*.5+.5;return x*(b-a)+a;}
+function kwh(sc,p){const base=sc.s55*2.8+sc.s75*3.8;const m={today:1,week:7,month:30,year:365}[p]||30;return Math.round(base*(0.7+rnd(sc.id,p.length,3)*0.6)*m*10)/10;}
+function co2(sc,p){return Math.round(kwh(sc,p)*0.48);}
+function savings(sc,p){const base=sc.s55*8000+sc.s75*11000;const m={today:1,week:7,month:30,year:365}[p]||30;return Math.round(base*(0.7+rnd(sc.id,5,7)*0.6)*m);}
+function voltage(sc){if(sc.st==='offline')return 0;return sc.st==='alert'?Math.round(195+rnd(sc.id,2,9)*15):Math.round(218+rnd(sc.id,2,9)*10);}
+function uptime(sc){if(sc.st==='offline')return Math.round(15+rnd(sc.id,5,8)*30);return sc.st==='alert'?Math.round(65+rnd(sc.id,5,8)*20):Math.round(87+rnd(sc.id,5,8)*12);}
+
+let activePage='overview', charts={};
+
+// ── NAV ──
+const PAGE_TITLES={overview:'Executive Overview',geo:'Map',profile:'School Analytics',baseline:'Baseline vs Current',carbon:'Carbon Monitoring',donor:'Donor Impact Report',stoves:'Stove Tracker',datamodel:'Data Model & DAX Reference',alerts:'Alerts & Notifications'};
+function goto(p,el){
+  document.querySelectorAll('.page').forEach(pg=>pg.classList.remove('on'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('on'));
+  document.getElementById('page-'+p).classList.add('on');
+  el.classList.add('on');
+  activePage=p;
+  document.getElementById('page-title').textContent=PAGE_TITLES[p]||p;
+  render();
+}
+
+// ── CHART HELPER ──
+function mkChart(id,cfg){
+  const canvas=document.getElementById(id);
+  if(!canvas)return;
+  if(charts[id])charts[id].destroy();
+  charts[id]=new Chart(canvas,cfg);
+}
+const tickOpts={color:'#8A9688',font:{size:9,family:"'Outfit',sans-serif"}};
+const gridOpts={color:'rgba(138,150,136,.12)'};
+const baseOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1A2118',titleFont:{size:10,family:"'Outfit',sans-serif"},bodyFont:{size:10,family:"'Outfit',sans-serif"},padding:8,cornerRadius:8}},scales:{x:{grid:{display:false},ticks:tickOpts},y:{grid:gridOpts,ticks:tickOpts}}};
+
+// ── FILTER ──
+function getFiltered(){
+  const p=document.getElementById('sel-period').value;
+  const r=document.getElementById('sel-region').value;
+  const sch=document.getElementById('sel-school').value;
+  let sc=SCHOOLS;
+  if(r!=='all') sc=sc.filter(s=>s.r===r);
+  if(sch!=='all') sc=sc.filter(s=>s.id===+sch);
+  return {sc,p};
+}
+
+// ── SCHOOL DROPDOWN ──
+function populateDropdown(){
+  const sel=document.getElementById('sel-school');
+  const pSel=document.getElementById('profile-school-sel');
+  SCHOOLS.forEach(s=>{
+    const o1=new Option(s.n,s.id); sel.appendChild(o1);
+    const o2=new Option(s.n,s.id); pSel.appendChild(o2);
+  });
+}
+
+// ── RENDER ──
+function render(){
+  const {sc,p}=getFiltered();
+  const totalKwh=sc.reduce((a,s)=>a+kwh(s,p),0);
+  const totalCO2=sc.reduce((a,s)=>a+co2(s,p),0);
+  const totalSavings=sc.reduce((a,s)=>a+savings(s,p),0);
+  const totalStudents=sc.reduce((a,s)=>a+s.fed,0);
+  const online=sc.filter(s=>s.st==='online').length;
+  const alert=sc.filter(s=>s.st==='alert').length;
+  const offline=sc.filter(s=>s.st==='offline').length;
+
+  // Update topbar subtitle dynamically
+  const selR=document.getElementById('sel-region').value;
+  const selRLabel=selR==='all'?'All Regions':{'dar':'Dar es Salaam','dodoma':'Dodoma','tabora':'Tabora','kigoma':'Kigoma'}[selR]||selR;
+  const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const periodLabel=customMonth?MONTHS[customMonth.m]+' '+customMonth.y:{'today':'Today','week':'This Week','month':'This Month','year':'This Year'}[p]||'';
+  document.querySelector('.topbar-sub').textContent=`${sc.length} schools · ${selRLabel} · ${periodLabel}`;
+
+  // KPI strip
+  document.getElementById('k-schools').textContent=sc.length;
+  document.getElementById('k-students').textContent=totalStudents.toLocaleString();
+  document.getElementById('k-co2').textContent=totalCO2.toLocaleString()+'';
+  document.getElementById('k-savings').textContent=(totalSavings/1000000).toFixed(1)+'M';
+
+  switch(activePage){
+    case 'overview': renderOverview(sc,p,totalKwh,totalCO2,online,alert,offline); break;
+    case 'geo': renderGeo(sc,p); break;
+    case 'profile': renderProfile(); break;
+    case 'baseline': renderBaseline(sc,p); break;
+    case 'carbon': renderCarbon(sc,p,totalCO2); break;
+    case 'donor': renderDonor(sc,p,totalCO2,totalStudents,totalSavings); break;
+    case 'stoves': renderStoves(sc,p); break;
+    case 'datamodel': renderDataModel(); break;
+    case 'alerts': renderAlerts(sc); break;
+  }
+}
+
+// ── SORT & FILTER STATE ──
+let sortBy='kwh', statusFilter='all';
+function setSort(col,btn){
+  sortBy=col;
+  document.querySelectorAll('#sort-pills .pill').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  render();
+}
+function setStatusFilter(st,btn){
+  statusFilter=st;
+  document.querySelectorAll('#status-pills .pill').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  render();
+}
+
+// ── PERIOD CHANGE ──
+let customMonth=null;
+function onPeriodChange(){
+  const val=document.getElementById('sel-period').value;
+  if(val==='custom'){
+    openCalendar();
+  } else {
+    customMonth=null;
+    document.getElementById('custom-month-display').style.display='none';
+    render();
+  }
+}
+
+// ── CALENDAR MODAL ──
+function openCalendar(){
+  const existing=document.getElementById('cal-modal');
+  if(existing) existing.remove();
+  const now=new Date();
+  let viewYear=now.getFullYear(), viewMonth=customMonth?customMonth.m:now.getMonth();
+  const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  const modal=document.createElement('div');
+  modal.id='cal-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(26,33,24,.35);z-index:999;display:flex;align-items:center;justify-content:center';
+
+  function renderCal(){
+    modal.innerHTML=`
+      <div style="background:var(--surface);border-radius:16px;padding:20px;width:300px;box-shadow:0 8px 40px rgba(0,0,0,.2)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <button onclick="shiftYear(-1)" style="border:none;background:transparent;cursor:pointer;font-size:16px;color:var(--text2)">‹</button>
+          <div style="font-family:var(--serif);font-size:18px">${viewYear}</div>
+          <button onclick="shiftYear(1)" style="border:none;background:transparent;cursor:pointer;font-size:16px;color:var(--text2)">›</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+          ${MONTHS.map((m,i)=>{
+            const isFuture=viewYear>now.getFullYear()||(viewYear===now.getFullYear()&&i>now.getMonth());
+            const isSelected=customMonth&&customMonth.y===viewYear&&customMonth.m===i;
+            return`<button onclick="${isFuture?'':'selectMonth('+i+','+viewYear+')'}" style="padding:7px;border-radius:8px;border:${isSelected?'2px solid var(--green)':'1px solid var(--border)'};background:${isSelected?'var(--green-light)':isFuture?'var(--surface2)':'var(--surface)'};color:${isFuture?'var(--text3)':isSelected?'var(--green-dark)':'var(--text)'};cursor:${isFuture?'not-allowed':'pointer'};font-family:var(--font);font-size:11px;font-weight:${isSelected?'600':'400'}">${m.slice(0,3)}</button>`;
+          }).join('')}
+        </div>
+        <div style="margin-top:12px;text-align:right">
+          <button onclick="document.getElementById('cal-modal').remove();if(!customMonth){document.getElementById('sel-period').value='month';}" style="border:none;background:transparent;cursor:pointer;font-size:11px;color:var(--text3)">Cancel</button>
+        </div>
+      </div>`;
+  }
+
+  window.shiftYear=d=>{viewYear+=d;renderCal();};
+  window.selectMonth=(m,y)=>{
+    customMonth={m,y};
+    const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const disp=document.getElementById('custom-month-display');
+    disp.style.display='inline-flex';
+    disp.textContent=MONTHS[m]+' '+y+' ×';
+    disp.title='Click to clear custom month';
+    document.getElementById('sel-period').value='month';
+    modal.remove();
+    render();
+  };
+
+  renderCal();
+  modal.addEventListener('click',e=>{if(e.target===modal){modal.remove();if(!customMonth)document.getElementById('sel-period').value='month';}});
+  document.body.appendChild(modal);
+}
+
+// ── OVERVIEW ──
+function renderOverview(sc,p,totalKwh,totalCO2,online,alert,offline){
+  document.getElementById('leg-on').textContent=online+' Online';
+  document.getElementById('leg-al').textContent=alert+' Alert';
+  document.getElementById('leg-of').textContent=offline+' Offline';
+  if(document.getElementById('leg-on2')) document.getElementById('leg-on2').textContent=online;
+  if(document.getElementById('leg-al2')) document.getElementById('leg-al2').textContent=alert;
+  if(document.getElementById('leg-of2')) document.getElementById('leg-of2').textContent=offline;
+  document.getElementById('status-total').textContent=sc.reduce((a,s)=>a+s.s55+s.s75,0)+' stoves';
+
+  mkChart('chartDonut',{type:'doughnut',data:{labels:['Online','Alert','Offline'],datasets:[{data:[online,alert,offline],backgroundColor:['#1A9E73','#C07B18','#C93535'],borderWidth:0,hoverBorderWidth:2,hoverBorderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'72%',plugins:{legend:{display:false},tooltip:{backgroundColor:'#1A2118',bodyFont:{size:10},padding:8,cornerRadius:8}}}});
+
+  // Trend chart - label axis based on period
+  const periodAxisLabel={today:'Hour',week:'Day',month:'Week',year:'Month'}[p]||'Period';
+  const periods={today:['6am','8am','10am','12pm','2pm','4pm','6pm'],week:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],month:['W1','W2','W3','W4'],year:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']};
+  const labels=periods[p];
+  const data=labels.map((_,i)=>Math.round(sc.reduce((a,s)=>a+kwh(s,p)/labels.length*(0.8+rnd(s.id,i,2)*0.4),0)));
+  mkChart('chartTrend',{type:'line',data:{labels,datasets:[{label:'kWh',data,borderColor:'#1A9E73',backgroundColor:'rgba(26,158,115,.1)',tension:.4,fill:true,pointRadius:3,pointBackgroundColor:'#1A9E73',borderWidth:2}]},options:{...baseOpts,plugins:{...baseOpts.plugins,title:{display:true,text:`Energy Consumption by ${periodAxisLabel}`,color:'var(--text3)',font:{size:9,family:"'Outfit',sans-serif"}}},scales:{x:{...baseOpts.scales.x,title:{display:true,text:periodAxisLabel,color:'#8A9688',font:{size:9}},ticks:{...tickOpts,maxRotation:0}},y:{...baseOpts.scales.y,ticks:{...tickOpts,callback:v=>v+' kWh'}}}}});
+
+  // Region cards
+  const rm=document.getElementById('region-map');
+  rm.innerHTML='';
+  rm.className='rmap';
+  Object.keys(RC).forEach(r=>{
+    const rsc=sc.filter(s=>s.r===r);
+    const rkwh=Math.round(rsc.reduce((a,s)=>a+kwh(s,p),0));
+    const d=document.createElement('div');
+    d.className='rcard';
+    d.innerHTML=`<div class="rcard-top"><span class="rcard-name" style="color:${RC[r]};font-size:11px">${RN[r]}</span><span class="rcard-n">${rsc.length} schools</span></div><div class="rcard-val" style="color:${RC[r]}">${rkwh.toLocaleString()}</div><div class="rcard-sub">kWh · <strong style="color:var(--text)">${rsc.reduce((a,s)=>a+s.fed,0).toLocaleString()} students</strong></div>`;
+    rm.appendChild(d);
+  });
+
+  // Overview table with sort & filter
+  let sorted=sc.map(s=>({...s,_kwh:kwh(s,p),_co2:co2(s,p),_sav:savings(s,p)}));
+  if(statusFilter!=='all') sorted=sorted.filter(s=>s.st===statusFilter);
+  const sortFns={kwh:(a,b)=>b._kwh-a._kwh,students:(a,b)=>b.fed-a.fed,co2:(a,b)=>b._co2-a._co2,savings:(a,b)=>b._sav-a._sav,name:(a,b)=>a.n.localeCompare(b.n)};
+  sorted.sort(sortFns[sortBy]||sortFns.kwh);
+  const spMap={online:'<span class="tag on">Online</span>',alert:'<span class="tag al">Alert</span>',offline:'<span class="tag of">Offline</span>'};
+  document.getElementById('overview-tbody').innerHTML=sorted.map(s=>`
+    <tr>
+      <td class="fw5" title="${s.n}" style="max-width:0;overflow:hidden;text-overflow:ellipsis">${s.n}</td>
+      <td style="color:${RC[s.r]};font-size:9px;font-weight:500">${RN[s.r]}</td>
+      <td style="font-size:9px;color:var(--text3)">${s.d}</td>
+      <td>${s.fed.toLocaleString()}</td>
+      <td>${s.s55+s.s75}</td>
+      <td class="fw5">${s._kwh.toLocaleString()}</td>
+      <td style="color:var(--green-dark);font-weight:500">${s._co2.toLocaleString()} kg</td>
+      <td style="color:var(--green-dark);font-weight:500">${(s._sav/1000).toFixed(0)}K TZS</td>
+      <td>${spMap[s.st]}</td>
+      <td style="font-size:9px;color:var(--text3)">${s.note||'—'}</td>
+    </tr>`).join('');
+}
+
+// ── GEO ──
+function renderGeo(sc,p){
+  ['dar','dodoma','tabora','kigoma'].forEach(r=>{
+    const v=document.getElementById(`g-${r}-v`);
+    if(v) v.textContent=Math.round(sc.filter(s=>s.r===r).reduce((a,s)=>a+kwh(s,p),0)).toLocaleString()+' kWh';
+  });
+  document.getElementById('geo-online').textContent=sc.filter(s=>s.st==='online').length;
+  document.getElementById('geo-alert').textContent=sc.filter(s=>s.st==='alert').length;
+  document.getElementById('geo-offline').textContent=sc.filter(s=>s.st==='offline').length;
+
+  const container=document.getElementById('school-pins');
+  container.innerHTML='';
+  sc.forEach(s=>{
+    const d=document.createElement('div');
+    d.className='school-pin';
+    const dot={online:'🟢',alert:'🟡',offline:'🔴'}[s.st];
+    d.innerHTML=`<div class="sp-name">${dot} ${s.n}</div>
+      <div class="sp-row"><span style="color:${RC[s.r]}">${RN[s.r]}</span><span>${s.d}</span></div>
+      <div class="sp-row"><span>${s.fed.toLocaleString()} students</span><span>${s.s55+s.s75} EPCs</span></div>
+      <div class="sp-row"><span style="color:var(--text3);font-family:var(--mono);font-size:8px">${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}</span></div>`;
+    d.onclick=()=>{
+      document.querySelectorAll('.school-pin').forEach(p2=>p2.classList.remove('selected'));
+      d.classList.add('selected');
+      document.getElementById('sel-school').value=s.id;
+    };
+    container.appendChild(d);
+  });
+}
+function filterGeo(r){
+  document.getElementById('sel-region').value=r;
+  render();
+}
+
+// ── PROFILE ──
+function renderProfile(){
+  const id=+document.getElementById('profile-school-sel').value;
+  const s=SCHOOLS.find(sc=>sc.id===id)||SCHOOLS[0];
+  const p=document.getElementById('sel-period').value;
+
+  document.getElementById('prof-info').innerHTML=`
+    <div class="ir"><span class="ir-lbl">School Name</span><span class="ir-val">${s.n}</span></div>
+    <div class="ir"><span class="ir-lbl">School ID</span><span class="ir-val" style="font-family:var(--mono);font-size:10px">CCT-${String(s.id).padStart(4,'0')}</span></div>
+    <div class="ir"><span class="ir-lbl">Region</span><span class="ir-val" style="color:${RC[s.r]}">${RN[s.r]}</span></div>
+    <div class="ir"><span class="ir-lbl">District</span><span class="ir-val">${s.d}</span></div>
+    <div class="ir"><span class="ir-lbl">GPS</span><span class="ir-val" style="font-family:var(--mono);font-size:10px">${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}</span></div>
+    <div class="ir"><span class="ir-lbl">Student Population</span><span class="ir-val">${s.fed.toLocaleString()}</span></div>
+    <div class="ir"><span class="ir-lbl">Status</span><span class="ir-val">${{online:'🟢 Online',alert:'🟡 Alert',offline:'🔴 Offline'}[s.st]}</span></div>
+  `;
+  document.getElementById('prof-admin').innerHTML=`
+    <div class="ir"><span class="ir-lbl">Head Teacher</span><span class="ir-val">${s.hm}</span></div>
+    <div class="ir"><span class="ir-lbl">Phone</span><span class="ir-val" style="font-family:var(--mono);font-size:10px">${s.phone}</span></div>
+    <div class="ir"><span class="ir-lbl">Email</span><span class="ir-val" style="color:var(--text3)">school${s.id}@moe.go.tz</span></div>
+  `;
+  document.getElementById('prof-install').innerHTML=`
+    <div class="ir"><span class="ir-lbl">Installation Date</span><span class="ir-val">${s.install}</span></div>
+    <div class="ir"><span class="ir-lbl">55L EPCs</span><span class="ir-val">${s.s55}</span></div>
+    <div class="ir"><span class="ir-lbl">75L EPCs</span><span class="ir-val">${s.s75}</span></div>
+    <div class="ir"><span class="ir-lbl">Total Devices</span><span class="ir-val fw5">${s.s55+s.s75}</span></div>
+    <div class="ir"><span class="ir-lbl">Smart Meter</span><span class="ir-val">✓ Halotel SIM</span></div>
+    <div class="ir"><span class="ir-lbl">Contractor</span><span class="ir-val">CCT Solutions Ltd</span></div>
+  `;
+
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const mdata=months.map((_,i)=>Math.round(kwh(s,'month')*(0.8+rnd(s.id,i,3)*0.4)));
+  mkChart('chartProfEnergy',{type:'bar',data:{labels:months,datasets:[{label:'kWh',data:mdata,backgroundColor:'#1A9E73',borderRadius:5,barThickness:18}]},options:{...baseOpts,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{...tickOpts,maxRotation:0}},y:{grid:gridOpts,ticks:{...tickOpts,callback:v=>v+' kWh'}}}}});
+
+  // Heatmap
+  const hm=document.getElementById('prof-heatmap');
+  hm.innerHTML='<div style="display:grid;grid-template-columns:repeat(24,1fr);gap:2px;margin-bottom:4px">';
+  const hmHtml=Array.from({length:24},(_,i)=>{
+    const intensity=i>=6&&i<=18?rnd(s.id,i,4):.05;
+    const g=Math.round(30+intensity*150);const alpha=.1+intensity*.9;
+    return`<div style="height:14px;border-radius:2px;background:rgba(26,158,115,${alpha.toFixed(2)})" title="${i}:00 — ${(kwh(s,'today')/24*intensity*2).toFixed(1)} kWh"></div>`;
+  }).join('');
+  hm.innerHTML=`<div style="display:grid;grid-template-columns:repeat(24,1fr);gap:2px">${hmHtml}</div><div style="display:flex;justify-content:space-between;font-size:8px;color:var(--text3);margin-top:4px"><span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>23h</span></div>`;
+
+  const pk=kwh(s,p);
+  document.getElementById('prof-kpis').innerHTML=`
+    <div><div style="font-size:9px;color:var(--text3)">kWh (${p})</div><div style="font-size:18px;font-weight:600;color:var(--green-dark)">${pk.toLocaleString()}</div></div>
+    <div><div style="font-size:9px;color:var(--text3)">CO₂ Saved</div><div style="font-size:18px;font-weight:600;color:var(--green)">${co2(s,p).toLocaleString()} kg</div></div>
+    <div><div style="font-size:9px;color:var(--text3)">Uptime</div><div style="font-size:18px;font-weight:600">${uptime(s)}%</div></div>
+    <div><div style="font-size:9px;color:var(--text3)">Avg Voltage</div><div style="font-size:18px;font-weight:600;color:${voltage(s)<210?'var(--amber)':'var(--text)'}">${voltage(s)||'—'} V</div></div>
+    <div><div style="font-size:9px;color:var(--text3)">Daily Cook Hours</div><div style="font-size:18px;font-weight:600">1.5 hrs</div></div>
+    <div><div style="font-size:9px;color:var(--text3)">Meals/Day</div><div style="font-size:18px;font-weight:600">${s.fed.toLocaleString()}</div></div>
+  `;
+
+  const maintLabels=['Routine inspection','Meter calibration check','Wiring audit'];
+  const maintNotes=[`All ${s.s55+s.s75} units checked — pass`,'SIM connection verified','Earthing confirmed'];
+  document.getElementById('prof-maint').innerHTML=['2026-03-15','2025-12-20','2025-09-08'].map((date,i)=>`
+    <div class="mrow">
+      <div style="flex:1"><div class="msch">${maintLabels[i]}</div><div class="mtype">${maintNotes[i]}</div></div>
+      <div class="mdate">${date}</div>
+      <div class="tag ${['on','mt','info'][i]}">Done</div>
+    </div>`).join('');
+}
+
+// ── BASELINE ──
+function renderBaseline(sc,p){
+  const totalKwh=sc.reduce((a,s)=>a+kwh(s,p),0);
+  const totalCO2=sc.reduce((a,s)=>a+co2(s,p),0);
+  const baseCost=Math.round(sc.reduce((a,s)=>a+(s.s55*14000+s.s75*19000)*(p==='year'?12:p==='month'?1:p==='week'?0.25:0.033),0));
+  const elecCost=Math.round(sc.reduce((a,s)=>a+savings(s,p)*0.23,0));
+  const baseCO2=Math.round(totalCO2*5.2);
+  const baseFirewood=Math.round(totalCO2*3.8);
+
+  document.getElementById('bl-cost').textContent='TZS '+baseCost.toLocaleString();
+  document.getElementById('bl-fw').textContent=baseFirewood.toLocaleString()+' kg';
+  document.getElementById('bl-co2').textContent=baseCO2.toLocaleString()+' kg';
+  document.getElementById('cur-cost').textContent='TZS '+elecCost.toLocaleString();
+  document.getElementById('cur-kwh').textContent=totalKwh.toLocaleString()+' kWh';
+  document.getElementById('cur-co2').textContent=totalCO2.toLocaleString()+' kg saved';
+
+  const schools=sc.slice(0,8).map(s=>s.n.length>10?s.n.substring(0,10)+'…':s.n);
+  const blCosts=sc.slice(0,8).map(s=>Math.round((s.s55*14000+s.s75*19000)*(p==='year'?12:p==='month'?1:p==='week'?0.25:0.033)/1000));
+  const curCosts=sc.slice(0,8).map(s=>Math.round(savings(s,p)*0.23/1000));
+  mkChart('chartBLCost',{type:'bar',data:{labels:schools,datasets:[{label:'Before (TZS 000s)',data:blCosts,backgroundColor:'#C07B18',borderRadius:4,barThickness:14},{label:'After (TZS 000s)',data:curCosts,backgroundColor:'#1A9E73',borderRadius:4,barThickness:14}]},options:{...baseOpts,plugins:{legend:{display:true,labels:{color:'#4A5548',font:{size:9,family:"'Outfit',sans-serif"},boxWidth:10,padding:8}}},scales:{x:{grid:{display:false},ticks:{...tickOpts,maxRotation:30}},y:{grid:gridOpts,ticks:{...tickOpts,callback:v=>v+'K'}}}}});
+
+  const blCO2=sc.slice(0,8).map(s=>Math.round(co2(s,p)*5.2));
+  const curCO2=sc.slice(0,8).map(s=>co2(s,p));
+  mkChart('chartBLCO2',{type:'bar',data:{labels:schools,datasets:[{label:'Before (kg CO₂)',data:blCO2,backgroundColor:'#C93535',borderRadius:4,barThickness:14},{label:'After (kg CO₂)',data:curCO2,backgroundColor:'#5DCAA5',borderRadius:4,barThickness:14}]},options:{...baseOpts,plugins:{legend:{display:true,labels:{color:'#4A5548',font:{size:9,family:"'Outfit',sans-serif"},boxWidth:10,padding:8}}},scales:{x:{grid:{display:false},ticks:{...tickOpts,maxRotation:30}},y:{grid:gridOpts,ticks:{...tickOpts,callback:v=>v+' kg'}}}}});
+
+  // Waterfall: Firewood baseline → elec cost → maintenance → net saving
+  const wfBase=Math.round(baseCost/sc.length/1000);
+  const wfElec=Math.round(elecCost/sc.length/1000);
+  const wfMaint=Math.round(wfBase*0.05);
+  const wfNet=wfBase-wfElec-wfMaint;
+  mkChart('chartWaterfall',{type:'bar',data:{
+    labels:['Firewood Baseline','Electricity Cost','Maintenance','Net Saving'],
+    datasets:[{
+      data:[wfBase, wfElec, wfMaint, wfNet],
+      backgroundColor:['#C07B18','#1B6FBF','#8A9688','#1A9E73'],
+      borderRadius:6,barThickness:50
+    }]
+  },options:{...baseOpts,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'TZS '+c.parsed.y+'K'}}},scales:{x:{grid:{display:false},ticks:tickOpts},y:{grid:gridOpts,ticks:{...tickOpts,callback:v=>v+'K TZS'}}}}});
+}
+
+// ── CARBON ──
+function renderCarbon(sc,p,totalCO2){
+  document.getElementById('carbon-big').textContent=totalCO2.toLocaleString();
+  const pct=Math.min(100,Math.round(totalCO2/5000*100));
+  document.getElementById('c-pct').textContent=pct+'%';
+  document.getElementById('c-prog').style.width=pct+'%';
+  const fw=Math.round(totalCO2*2.5);const ch=Math.round(totalCO2*1.8);const trees=Math.round(totalCO2/20);
+  document.getElementById('c-fw').textContent=fw.toLocaleString()+' kg';
+  document.getElementById('c-fw-p').style.width=Math.min(100,Math.round(fw/12000*100))+'%';
+  document.getElementById('c-ch').textContent=ch.toLocaleString()+' kg';
+  document.getElementById('c-ch-p').style.width=Math.min(100,Math.round(ch/9000*100))+'%';
+  document.getElementById('c-tr').textContent=trees.toLocaleString()+' trees';
+  document.getElementById('c-tr-p').style.width=Math.min(100,Math.round(trees/250*100))+'%';
+
+  const regions=Object.keys(RC);
+  const co2R=regions.map(r=>sc.filter(s=>s.r===r).reduce((a,s)=>a+co2(s,p),0));
+  mkChart('chartCO2Region',{type:'bar',data:{labels:regions.map(r=>RN[r].split(' ')[0]),datasets:[{data:co2R,backgroundColor:regions.map(r=>RC[r]),borderRadius:7,barThickness:40}]},options:{...baseOpts,scales:{x:{grid:{display:false},ticks:tickOpts},y:{grid:gridOpts,ticks:{...tickOpts,callback:v=>v+' kg'}}}}});
+
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const trend=months.map((_,i)=>Math.round(sc.reduce((a,s)=>a+co2(s,'month')*(0.8+rnd(s.id,i,2)*0.4),0)));
+  mkChart('chartCO2Trend',{type:'line',data:{labels:months,datasets:[{label:'kg CO₂ saved',data:trend,borderColor:'#1A9E73',backgroundColor:'rgba(26,158,115,.12)',tension:.4,fill:true,pointRadius:3,borderWidth:2},{label:'Forecast',data:months.map((_,i)=>i>=9?Math.round(trend[8]*(1+i*0.04)):null),borderColor:'#5DCAA5',borderDash:[5,4],tension:.4,pointRadius:2,borderWidth:1.5,spanGaps:true}]},options:{...baseOpts,plugins:{legend:{display:true,labels:{color:'#4A5548',font:{size:9,family:"'Outfit',sans-serif"},boxWidth:10,padding:8}}},scales:{x:{grid:{display:false},ticks:tickOpts},y:{grid:gridOpts,ticks:{...tickOpts,callback:v=>v+' kg'}}}}});
+
+  const co2Sc=sc.slice(0,12).map(s=>({n:s.n.length>12?s.n.substring(0,12)+'…':s.n,v:co2(s,p)})).sort((a,b)=>b.v-a.v);
+  mkChart('chartCO2Schools',{type:'bar',data:{labels:co2Sc.map(s=>s.n),datasets:[{data:co2Sc.map(s=>s.v),backgroundColor:'#5DCAA5',borderRadius:4,barThickness:16}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:gridOpts,ticks:{...tickOpts,callback:v=>v+' kg'}},y:{grid:{display:false},ticks:{...tickOpts,font:{size:9}}}}}});
+
+  // Scorecard
+  const scorecardData=[
+    {label:'Emissions Reduction %',val:'85%',color:'var(--green)',prog:85},
+    {label:'Energy Efficiency',val:'94%',color:'var(--blue)',prog:94},
+    {label:'Schools with Smart Meters',val:'89%',color:'var(--purple)',prog:89},
+    {label:'Indoor Air Quality Score',val:'A+',color:'var(--teal)',prog:95},
+  ];
+  document.getElementById('carbon-scorecard').innerHTML=scorecardData.map(s=>`
+    <div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
+        <span style="color:var(--text2)">${s.label}</span>
+        <span style="font-weight:600;color:${s.color}">${s.val}</span>
+      </div>
+      <div class="prog"><div class="prog-f" style="background:${s.color};width:${s.prog}%"></div></div>
+    </div>`).join('');
+}
+
+// ── DONOR ──
+function renderDonor(sc,p,totalCO2,totalStudents,totalSavings){
+  document.getElementById('donor-students').textContent=totalStudents.toLocaleString()+'+';
+  document.getElementById('donor-co2').textContent=totalCO2.toLocaleString()+' kg';
+  document.getElementById('donor-savings').textContent=(totalSavings/1000000).toFixed(1)+'M TZS';
+  document.getElementById('donor-trees').textContent=Math.round(totalCO2/20).toLocaleString();
+  document.getElementById('donor-kwh').textContent=Math.round(sc.reduce((a,s)=>a+kwh(s,p),0)).toLocaleString()+' kWh';
+
+  const regions=Object.keys(RC);
+  const rStudents=regions.map(r=>sc.filter(s=>s.r===r).reduce((a,s)=>a+s.fed,0));
+  mkChart('chartDonorImpact',{type:'bar',data:{labels:regions.map(r=>RN[r].split(' ')[0]),datasets:[{label:'Students',data:rStudents,backgroundColor:regions.map(r=>RC[r]),borderRadius:7,barThickness:38}]},options:{...baseOpts,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y.toLocaleString()+' students'}}},scales:{x:{grid:{display:false},ticks:tickOpts},y:{grid:gridOpts,ticks:{...tickOpts,callback:v=>v.toLocaleString()}}}}});
+
+  document.getElementById('milestones').innerHTML=[
+    {date:'Jan 2024',text:'Program launch — first 6 schools in Dar es Salaam receive EPCs'},
+    {date:'Mar 2024',text:'Dodoma expansion — 11 schools connected to national grid EPC network'},
+    {date:'Apr 2024',text:'Tabora rollout complete — 6 schools, 17 EPCs, 1,200 students'},
+    {date:'May 2024',text:'Kigoma connected — completing all 4 regions. 169 EPCs total operational'},
+    {date:'Jan 2025',text:'Kibasila Case Study published — 77% cost reduction documented'},
+    {date:'May 2026',text:'Dashboard launched — real-time monitoring of all 36 schools'},
+  ].map(m=>`<div class="milestone-row"><div class="ms-dot"></div><div class="ms-date">${m.date}</div><div class="ms-text">${m.text}</div></div>`).join('');
+}
+
+// ── ALERTS ──
+function renderAlerts(sc){
+  const alertDefs=[
+    {sev:'crit',icon:'!',title:'Electricity not connected',msg:'Nzasa school — stoves offline since installation. No grid power available.',sch:'Nzasa',time:'2 days ago'},
+    {sev:'crit',icon:'!',title:'No circuit breaker installed',msg:'Ponde (KIAB) — exposed earth wiring hazard. Stoves lack DP switch. Fire risk.',sch:'Ponde (KIAB)',time:'3 days ago'},
+    {sev:'warn',icon:'~',title:'Low voltage detected',msg:'Kibasila — avg 198V across 5 stoves. Expected 220–240V. Energy loss 12%.',sch:'Kibasila',time:'5 hrs ago'},
+    {sev:'warn',icon:'~',title:'Socket infrastructure gap',msg:'Alhassan Mwinyi — 10 stoves need 10 sockets, only 6 available.',sch:'Alhassan Mwinyi',time:'1 day ago'},
+    {sev:'warn',icon:'~',title:'Structural maintenance needed',msg:'Unubini — crack in kitchen wall near stove installation. Safety inspection required.',sch:'Unubini',time:'2 days ago'},
+    {sev:'warn',icon:'~',title:'Stove sensor not transmitting',msg:'Chemchem 55L (SN: 865223073767727) — last seen 4 hours ago. Check SIM card.',sch:'Chemchem',time:'4 hrs ago'},
+    {sev:'info',icon:'i',title:'Maintenance window due',msg:'Kibasila — 3 stoves approaching 500hr service interval. Schedule inspection.',sch:'Kibasila',time:'Today'},
+  ];
+  const visible=sc.length===SCHOOLS.length?alertDefs:alertDefs.filter(a=>sc.some(s=>s.n===a.sch));
+  document.getElementById('alert-count-lbl').textContent=visible.length+' active alerts';
+  document.getElementById('alert-c-lbl').textContent=visible.length+' active';
+  document.getElementById('nav-alert-badge').textContent=visible.length;
+  const sevMap={crit:'sev-crit',warn:'sev-warn',info:'sev-info'};
+  document.getElementById('alert-list').innerHTML=visible.map(a=>`<div class="alert-item"><div class="alert-sev ${sevMap[a.sev]}">${a.icon}</div><div><div class="a-title">${a.title}</div><div class="a-msg">${a.msg}</div><div class="a-time">${a.sch} · ${a.time}</div></div></div>`).join('');
+
+  const days=Array.from({length:14},(_,i)=>`Apr ${10+i}`);
+  const hist=days.map((_,i)=>Math.round(rnd(i,3,7)*6+1));
+  mkChart('chartAlertHist',{type:'bar',data:{labels:days,datasets:[{label:'Alerts',data:hist,backgroundColor:'#C9353588',borderRadius:4,barThickness:16}]},options:{...baseOpts,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{...tickOpts,maxRotation:45,font:{size:8}}},y:{grid:gridOpts,ticks:tickOpts}}}});
+}
+
+// ── STOVES ──
+// Build a flat device list from SCHOOLS (each stove gets a pseudo-serial)
+function buildDevices(sc){
+  const devs=[];
+  sc.forEach(s=>{
+    const base=865223073000000+s.id*100;
+    for(let i=0;i<s.s55;i++) devs.push({serial:String(base+i),school:s.n,r:s.r,sz:'55L',st:s.st,sid:s.id,idx:i});
+    for(let j=0;j<s.s75;j++) devs.push({serial:String(base+50+j),school:s.n,r:s.r,sz:'75L',st:s.st,sid:s.id,idx:j+10});
+  });
+  return devs;
+}
+function renderStoves(sc,p){
+  const devs=buildDevices(sc);
+  const online=devs.filter(d=>d.st==='online').length;
+  const alert=devs.filter(d=>d.st==='alert').length;
+  const offline=devs.filter(d=>d.st==='offline').length;
+  document.getElementById('st-tx').textContent=online+alert;
+  document.getElementById('st-al').textContent=alert;
+  document.getElementById('st-of').textContent=offline;
+  document.getElementById('stove-tbl-count').textContent=devs.length+' devices';
+
+  // Voltage distribution histogram
+  const bins=['<200V','200-209V','210-219V','220-229V','230-240V'];
+  const binCounts=[0,0,0,0,0];
+  devs.forEach(d=>{
+    if(d.st==='offline'){binCounts[0]++;return;}
+    const v=voltage({id:d.sid,st:d.st});
+    if(v<200)binCounts[0]++;else if(v<210)binCounts[1]++;else if(v<220)binCounts[2]++;else if(v<230)binCounts[3]++;else binCounts[4]++;
+  });
+  mkChart('chartVoltDist',{type:'bar',data:{labels:bins,datasets:[{data:binCounts,backgroundColor:['#C93535','#C07B18','#C07B18','#1A9E73','#1A9E73'],borderRadius:6,barThickness:36}]},options:{...baseOpts,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:tickOpts},y:{grid:gridOpts,ticks:{...tickOpts,callback:v=>v+' stoves'}}}}});
+
+  // Uptime by region
+  const regions=Object.keys(RC);
+  const uptimeByR=regions.map(r=>{
+    const rd=devs.filter(d=>d.r===r);
+    if(!rd.length)return 0;
+    return Math.round(rd.reduce((a,d)=>{const s=sc.find(s=>s.n===d.school);return a+(s?uptime(s):0);},0)/rd.length);
+  });
+  mkChart('chartUptime',{type:'bar',data:{labels:regions.map(r=>RN[r].split(' ')[0]),datasets:[{data:uptimeByR,backgroundColor:regions.map(r=>RC[r]),borderRadius:7,barThickness:44}]},options:{...baseOpts,scales:{x:{grid:{display:false},ticks:tickOpts},y:{grid:gridOpts,min:0,max:100,ticks:{...tickOpts,callback:v=>v+'%'}}}}});
+
+  // Table
+  const spMap={online:'<span class="tag on">Online</span>',alert:'<span class="tag al">Alert</span>',offline:'<span class="tag of">Offline</span>'};
+  const simMap={online:'<span class="tag info">Active</span>',alert:'<span class="tag al">Weak</span>',offline:'<span class="tag of">No Signal</span>'};
+  const nowStr=new Date().toLocaleTimeString('en-GB');
+  document.getElementById('stove-tbody').innerHTML=devs.map(d=>{
+    const s=sc.find(s=>s.n===d.school)||{id:1,st:'online'};
+    const v=voltage(s);
+    const kw=d.st==='offline'?'—':((d.sz==='55L'?2.5:3.5)*(0.6+rnd(s.id,d.idx,4)*0.7)).toFixed(2)+' kW';
+    const ut=uptime(s);
+    const lastSeen=d.st==='offline'?'24h+ ago':nowStr;
+      const vCol=v<210&&v>0?'var(--amber)':v===0?'var(--red)':'var(--text)';
+      return`<tr>
+      <td style="font-family:var(--mono);font-size:9px;color:var(--text3)">${d.serial.slice(-8)}</td>
+      <td class="fw5">${d.school.length>12?d.school.slice(0,12)+'…':d.school}</td>
+      <td style="color:${RC[d.r]};font-size:9px;font-weight:500">${RN[d.r].split(' ')[0]}</td>
+      <td><span class="tag na">${d.sz}</span></td>
+      <td style="color:${vCol};font-weight:500">${v||'—'}${v?' V':''}</td>
+      <td style="font-weight:500">${kw}</td>
+      <td>${ut}%<div class="prog" style="width:60px;margin-top:3px"><div class="prog-f" style="background:${ut>80?'var(--green)':ut>60?'var(--amber)':'var(--red)'};width:${ut}%"></div></div></td>
+      <td>${simMap[d.st]}</td>
+      <td style="font-family:var(--mono);font-size:9px;color:var(--text3)">${lastSeen}</td>
+      <td>${spMap[d.st]}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── DATA MODEL ──
+function renderDataModel(){
+  const tables=[
+    {name:'Schools',cols:['School_ID (PK)','School_Name','Region','District','Ward','Latitude','Longitude','Student_Count'],color:'var(--green)'},
+    {name:'Installations',cols:['Installation_ID (PK)','School_ID (FK)','Installation_Date','Technology_Type','EPC_Capacity','Contractor_ID (FK)'],color:'var(--blue)'},
+    {name:'Energy Consumption',cols:['Consumption_ID (PK)','School_ID (FK)','Date','kWh_Used','Cooking_Hours','Meals_Prepared'],color:'var(--teal)'},
+    {name:'Carbon Metrics',cols:['School_ID (FK)','Date','CO2_Reduced','Firewood_Saved','Trees_Saved'],color:'var(--green)'},
+    {name:'Baseline Data',cols:['School_ID (FK)','Previous_Fuel','Previous_Monthly_Cost','Previous_Emissions','Baseline_Date'],color:'var(--amber)'},
+    {name:'Maintenance',cols:['Maintenance_ID (PK)','School_ID (FK)','Device_Status','Downtime_Hours','Maintenance_Date'],color:'var(--purple)'},
+    {name:'Contractors',cols:['Contractor_ID (PK)','Contractor_Name','Contact_Number','Email_Address'],color:'var(--blue)'},
+    {name:'Administration',cols:['School_ID (FK)','Headmaster_Name','Phone_Number','Email_Address'],color:'var(--red)'},
+  ];
+  document.getElementById('dm-tables').innerHTML=tables.map(t=>`
+    <div style="border:1px solid var(--border);border-left:3px solid ${t.color};border-radius:8px;padding:9px 12px">
+      <div style="font-size:11px;font-weight:600;color:${t.color};margin-bottom:4px">${t.name}</div>
+      <div style="font-size:9px;color:var(--text3);line-height:1.7">${t.cols.join(' · ')}</div>
+    </div>`).join('');
+
+  const rels=[
+    {from:'Schools',to:'Installations',type:'1 : Many',note:'One school → many installs'},
+    {from:'Schools',to:'Energy Consumption',type:'1 : Many',note:'One school → daily readings'},
+    {from:'Schools',to:'Carbon Metrics',type:'1 : Many',note:'One school → monthly carbon data'},
+    {from:'Schools',to:'Maintenance',type:'1 : Many',note:'One school → many maintenance logs'},
+    {from:'Schools',to:'Administration',type:'1 : 1',note:'One school → one admin record'},
+    {from:'Contractors',to:'Installations',type:'1 : Many',note:'One contractor → many sites'},
+    {from:'Date Table',to:'Energy Consumption',type:'1 : Many',note:'Official date table (mark as Date Table)'},
+  ];
+  document.getElementById('dm-rels').innerHTML=rels.map(r=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px">
+      <span style="font-weight:500;width:130px;flex-shrink:0">${r.from}</span>
+      <span style="color:var(--green-dark);font-weight:700;font-size:10px;width:60px">${r.type}</span>
+      <span style="font-weight:500;width:130px">${r.to}</span>
+      <span style="color:var(--text3);font-size:9px;flex:1">${r.note}</span>
+    </div>`).join('');
+
+  const daxMeasures=[
+    {name:'Total Schools',expr:'DISTINCTCOUNT(Schools[School_ID])',cat:'Core'},
+    {name:'Total Students',expr:'SUM(Schools[Student_Count])',cat:'Core'},
+    {name:'Total kWh Consumed',expr:'SUM(EnergyConsumption[kWh_Used])',cat:'Core'},
+    {name:'Avg Daily Consumption',expr:'AVERAGEX(VALUES(EnergyConsumption[Date]), [Total kWh Consumed])',cat:'Core'},
+    {name:'Total CO₂ Reduced',expr:'SUM(CarbonMetrics[CO2_Reduced])',cat:'Core'},
+    {name:'Total Cost Savings',expr:'SUM(Installations[EPC_Capacity]) * 0.48 * [Avg kWh Price]',cat:'Core'},
+    {name:'Total Firewood Saved',expr:'SUM(CarbonMetrics[Firewood_Saved])',cat:'Core'},
+    {name:'Emissions Reduction %',expr:'DIVIDE([Total CO₂ Reduced], [Total CO₂ Reduced] + [Baseline Emissions])',cat:'Core'},
+    {name:'Schools Active Today',expr:"CALCULATE([Total Schools], EnergyConsumption[Date] = TODAY())",cat:'Core'},
+    {name:'Monthly Growth %',expr:'DIVIDE([Total kWh Consumed] - [kWh PrevMonth], [kWh PrevMonth])',cat:'Advanced'},
+    {name:'Rolling 3M Avg kWh',expr:'AVERAGEX(DATESINPERIOD(Date[Date],LASTDATE(Date[Date]),-3,MONTH),[Total kWh Consumed])',cat:'Advanced'},
+    {name:'YTD CO₂ Savings',expr:'TOTALYTD([Total CO₂ Reduced], Date[Date])',cat:'Advanced'},
+    {name:'Forecast CO₂ (Next Mo)',expr:'[Total CO₂ Reduced] * 1.08 -- 8% growth assumption',cat:'Advanced'},
+  ];
+  const catColor={Core:'var(--green)',Advanced:'var(--purple)'};
+  document.getElementById('dm-dax').innerHTML=daxMeasures.map(m=>`
+    <div style="border:1px solid var(--border);border-radius:8px;padding:9px 12px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:11px;font-weight:600">${m.name}</span>
+        <span style="font-size:9px;padding:1px 7px;border-radius:10px;background:${catColor[m.cat]}22;color:${catColor[m.cat]};font-weight:600">${m.cat}</span>
+      </div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text3);background:var(--surface2);padding:5px 8px;border-radius:5px">${m.expr}</div>
+    </div>`).join('');
+
+  const pqSteps=[
+    {step:'1. Remove duplicates',note:'School_ID, Serial_Number — keep first occurrence'},
+    {step:'2. Standardise GPS',note:'Split Lat/Lng, cast to Decimal, fill nulls with region centroid'},
+    {step:'3. Date normalisation',note:'Parse all dates to yyyy-MM-dd, mark Date Table'},
+    {step:'4. Region lookup',note:'Map region codes (DAR, DOD, TAB, KIG) to full names'},
+    {step:'5. Handle missing kWh',note:'Replace null with 0 if device offline; flag with IsEstimated=true'},
+    {step:'6. Unit conversion',note:'Convert firewood kg→tonnes where needed for carbon reports'},
+    {step:'7. Derived columns',note:'kWh_Per_Student = kWh / Student_Count; CO2_Per_kWh = 0.48'},
+  ];
+  document.getElementById('dm-pq').innerHTML=pqSteps.map(s=>`
+    <div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:11px">
+      <span style="font-weight:600;width:160px;flex-shrink:0;color:var(--text2)">${s.step}</span>
+      <span style="color:var(--text3)">${s.note}</span>
+    </div>`).join('');
+
+  const theme=[
+    {label:'Primary Green',hex:'#1A9E73',use:'Stove online / positive KPIs'},
+    {label:'Dark Green',hex:'#0D5C42',use:'Sidebar, headings'},
+    {label:'Amber',hex:'#C07B18',use:'Warnings, baseline costs'},
+    {label:'Red',hex:'#C93535',use:'Critical alerts, offline'},
+    {label:'Blue',hex:'#1B6FBF',use:'Dodoma region, info'},
+    {label:'Purple',hex:'#5D4DB5',use:'Kigoma, advanced DAX'},
+    {label:'Surface',hex:'#F5F7F4',use:'Page background'},
+    {label:'Font',hex:'Outfit',use:'Body · DM Mono (data) · DM Serif (headings)'},
+  ];
+  document.getElementById('dm-theme').innerHTML=theme.map(t=>`
+    <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden">
+      <div style="height:36px;background:${t.hex.startsWith('#')?t.hex:'var(--surface2)'};"></div>
+      <div style="padding:7px 9px">
+        <div style="font-size:10px;font-weight:600">${t.label}</div>
+        <div style="font-family:var(--mono);font-size:8px;color:var(--text3)">${t.hex}</div>
+        <div style="font-size:9px;color:var(--text3);margin-top:2px">${t.use}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ── GAUGE ──
+function drawGauge(pct){
+  const canvas=document.getElementById('gauge-canvas');
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  const cx=W/2,cy=H-8,r=Math.min(W,H*2)/2-8;
+  const startA=Math.PI,endA=0;
+  // bg arc
+  ctx.beginPath();ctx.arc(cx,cy,r,startA,endA);ctx.strokeStyle='#E8EEE6';ctx.lineWidth=10;ctx.stroke();
+  // value arc
+  const valA=startA+(endA-startA)*(pct/100);
+  ctx.beginPath();ctx.arc(cx,cy,r,startA,valA);ctx.strokeStyle=pct>75?'#1A9E73':pct>50?'#C07B18':'#C93535';ctx.lineWidth=10;ctx.lineCap='round';ctx.stroke();
+  if(document.getElementById('gauge-val'))document.getElementById('gauge-val').textContent=pct+'%';
+}
+
+// ── LIVE FEED ──
+const feedSchools=[
+  {serial:'865223073734107',sch:'Alhassan Mwinyi',r:'dar',sz:'55L',st:'online'},
+  {serial:'865223073778211',sch:'Kibasila',r:'dar',sz:'55L',st:'alert'},
+  {serial:'865223073500002',sch:'Amani',r:'dodoma',sz:'75L',st:'online'},
+  {serial:'865223073714752',sch:'Lioness Miburani',r:'dar',sz:'55L',st:'online'},
+  {serial:'865223073500004',sch:'Kaloleni',r:'dodoma',sz:'55L',st:'online'},
+  {serial:'865223073500005',sch:'Bombamzinga',r:'tabora',sz:'55L',st:'online'},
+  {serial:'865223073720023',sch:'Nzasa',r:'dar',sz:'55L',st:'offline'},
+  {serial:'865223073500006',sch:'Murabona',r:'kigoma',sz:'55L',st:'online'},
+  {serial:'865223073782403',sch:'Ponde (KIAB)',r:'dar',sz:'55L',st:'alert'},
+  {serial:'865223073500008',sch:'Nkuhungu',r:'dodoma',sz:'75L',st:'online'},
+];
+let feedIdx=0;
+function tickFeed(){
+  const now=new Date();
+  const ts=now.toLocaleTimeString('en-GB');
+  const selRegion=document.getElementById('sel-region')?document.getElementById('sel-region').value:'all';
+  const filtered=selRegion==='all'?feedSchools:feedSchools.filter(f=>f.r===selRegion);
+  if(!filtered.length)return;
+  const item=filtered[feedIdx%filtered.length]; feedIdx++;
+  const kw=(item.st==='offline'?0:(item.sz==='55L'?2.5:3.5)*(0.6+Math.random()*0.7)).toFixed(2);
+  const v=item.st==='offline'?0:Math.round(210+Math.random()*30*(item.st==='alert'?0.5:1));
+  const dotColor={online:'#1A9E73',alert:'#C07B18',offline:'#C93535'}[item.st];
+  const kwhColor=parseFloat(kw)>3?'#854F0B':'#0F6E56';
+  const vColor=v>215?'var(--text2)':v>0?'#854F0B':'var(--text3)';
+  const feed=document.getElementById('live-feed');
+  if(!feed)return;
+  const row=document.createElement('div');
+  row.className='feed-row';
+  row.innerHTML=`<div class="feed-dot" style="background:${dotColor}"></div><div class="feed-time" style="font-size:9px;font-family:var(--mono);color:var(--text3);width:52px">${ts.slice(-8)}</div><div class="feed-sn">${item.serial.slice(-8)}</div><div class="feed-sch">${item.sch}</div><div class="feed-kw" style="color:${kwhColor}">${kw} kW</div><div class="feed-v" style="color:${vColor}">${v||'–'}V</div>`;
+  feed.insertBefore(row,feed.firstChild);
+  if(feed.children.length>14)feed.removeChild(feed.lastChild);
+  if(document.getElementById('feed-ts')) document.getElementById('feed-ts').textContent='Last: '+ts.slice(-8);
+}
+
+function tickClock(){
+  const el=document.getElementById('clock');
+  if(el) el.textContent=new Date().toLocaleTimeString('en-GB')+' EAT';
+}
+
+// ── INIT ──
+populateDropdown();
+render();
+drawGauge(84);
+tickClock();
+tickFeed();
+setInterval(tickClock,1000);
+setInterval(()=>{if(activePage==='overview')tickFeed();},2200);
+setInterval(()=>{drawGauge(80+Math.round(Math.random()*12));},3000);
+</script>
+</body>
+</html>
